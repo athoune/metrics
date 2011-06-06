@@ -1,0 +1,16 @@
+{application, metrics,
+ [
+  {description, "Add some metrics in your application"},
+  {vsn, "0.1"},
+  {modules, [
+    metrics,
+    metrics_server
+  ]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { metrics_app, []}},
+  {env, []}
+ ]}.
