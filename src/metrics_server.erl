@@ -6,7 +6,12 @@
 -export([start_link/0, init/1, handle_call/3, handle_cast/2, 
 handle_info/2, terminate/2, code_change/3]).
 
--record(state, {}).
+-export([
+    incr_counter/2,
+    get_counter/1
+]).
+
+-record(state, {counter, timer}).
 
 %%====================================================================
 %% api callbacks
@@ -26,7 +31,9 @@ start_link() ->
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
 init([]) ->
-    {ok, #state{}}.
+    {ok, #state{
+        counter = dict:new(),
+        timer = dict:new()}}.
 
 %%--------------------------------------------------------------------
 %% Function: %% handle_call(Request, From, State) -> {reply, Reply, State} |
@@ -37,14 +44,27 @@ init([]) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
+handle_call({get, Key}, _From, State) ->
+    {reply, dict:fetch(Key, State#state.counter), State};
 handle_call(_Request, _From, State) ->
     {reply, State}.
+
 %%--------------------------------------------------------------------
 %% Function: handle_cast(Msg, State) -> {noreply, State} |
 %%                                      {noreply, State, Timeout} |
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
+handle_cast({incr_counter, Key, Incr}, State) ->
+    Count = case dict:is_key(Key, State#state.counter) of
+        true ->
+            dict:fetch(Key, State#state.counter) + Incr;
+        _ ->
+            Incr
+    end,
+    {noreply, State#state{
+        counter = dict:store(Key, Count, State#state.counter)
+    }};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -73,3 +93,19 @@ terminate(_Reason, State) ->
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+
+incr_counter(Key, Inc) ->
+    gen_server:cast(?MODULE, {incr_counter, Key, Inc}).
+
+get_counter(Key) ->
+    gen_server:call(?MODULE, {get, Key}).
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+incr_test() ->
+    start_link(),
+    incr_counter(plop, 42),
+    ?assertEqual(42, get_counter(plop)).
+-endif.
