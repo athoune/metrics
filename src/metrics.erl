@@ -6,7 +6,8 @@
     get_counter/1,
     reset_counter/1,
     start_timer/1,
-    get_timer/1
+    get_timer/1,
+    append_gauge/2
 ]).
 
 %%--------------------------------------------------------------------
@@ -28,6 +29,12 @@ start_timer(Key) ->
 get_timer(Key) ->
     gen_server:call(metrics_server, {get_timer, Key}).
 
+append_gauge(Key, Value) ->
+    gen_server:cast(metrics_server, {append_gauge, Key, Value}).
+
+get_gauge(Key) ->
+    gen_server:call(metrics_server, {get_gauge, Key}).
+
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
@@ -42,4 +49,10 @@ incr_test() ->
     incr_counter(plop, 3),
     ?assertEqual(3, get_counter(plop)),
     ?assert(get_timer(test) < 100).
+
+gauge_test() ->
+    append_gauge(truc, 42),
+    append_gauge(truc, 40),
+    append_gauge(truc, 44),
+    ?assertEqual([42, 40, 44], get_gauge(truc)).
 -endif.

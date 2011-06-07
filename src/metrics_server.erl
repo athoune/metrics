@@ -7,7 +7,7 @@
 -export([start_link/0, init/1, handle_call/3, handle_cast/2, 
 handle_info/2, terminate/2, code_change/3]).
 
--record(state, {counter, timer}).
+-record(state, {counter, timer, gauge}).
 
 %%====================================================================
 %% api callbacks
@@ -29,7 +29,9 @@ start_link() ->
 init([]) ->
     {ok, #state{
         counter = dict:new(),
-        timer = dict:new()}}.
+        timer   = dict:new(),
+        gauge   = dict:new()
+    }}.
 
 %%--------------------------------------------------------------------
 %% Function: %% handle_call(Request, From, State) -> {reply, Reply, State} |
@@ -44,6 +46,8 @@ handle_call({get_counter, Key}, _From, State) ->
     {reply, dict:fetch(Key, State#state.counter), State};
 handle_call({get_timer, Key}, _From, State) ->
     {reply, timer:now_diff(now(), dict:fetch(Key, State#state.timer)), State};
+handle_call({get_gauge, Key}, _From, State) ->
+    {reply, dict:fetch(Key, State#state.gauge), State};
 handle_call(_Request, _From, State) ->
     {reply, State}.
 
@@ -54,14 +58,8 @@ handle_call(_Request, _From, State) ->
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
 handle_cast({incr_counter, Key, Incr}, State) ->
-    Count = case dict:is_key(Key, State#state.counter) of
-        true ->
-            dict:fetch(Key, State#state.counter) + Incr;
-        _ ->
-            Incr
-    end,
     {noreply, State#state{
-        counter = dict:store(Key, Count, State#state.counter)
+        counter = dict:update_counter(Key, Incr, State#state.counter)
     }};
 handle_cast({reset_counter, Key}, State) ->
     {noreply, State#state{
@@ -70,6 +68,10 @@ handle_cast({reset_counter, Key}, State) ->
 handle_cast({start_timer, Key}, State) ->
     {noreply, State#state{
         timer = dict:store(Key, now(), State#state.timer)
+    }};
+handle_cast({append_gauge, Key, Value}, State) ->
+    {noreply, State#state{
+        gauge = dict:append(Key, Value, State#state.gauge)
     }};
 handle_cast(_Msg, State) ->
     {noreply, State}.
