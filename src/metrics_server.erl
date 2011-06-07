@@ -1,18 +1,11 @@
 -module(metrics_server).
+-author('mathieu@garambrogne.net').
 
 -behaviour(gen_server).
 
 %% gen_server callbacks
 -export([start_link/0, init/1, handle_call/3, handle_cast/2, 
 handle_info/2, terminate/2, code_change/3]).
-
--export([
-    incr_counter/2,
-    get_counter/1,
-    reset_counter/1,
-    start_timer/1,
-    get_timer/1
-]).
 
 -record(state, {counter, timer}).
 
@@ -106,38 +99,3 @@ terminate(_Reason, State) ->
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-
-%%--------------------------------------------------------------------
-%% Public API
-%%--------------------------------------------------------------------
-
-incr_counter(Key, Inc) ->
-    gen_server:cast(?MODULE, {incr_counter, Key, Inc}).
-
-get_counter(Key) ->
-    gen_server:call(?MODULE, {get_counter, Key}).
-
-reset_counter(Key) ->
-    gen_server:cast(?MODULE, {reset_counter, Key}).
-
-start_timer(Key) ->
-    gen_server:cast(?MODULE, {start_timer, Key}).
-
-get_timer(Key) ->
-    gen_server:call(?MODULE, {get_timer, Key}).
-
--ifdef(TEST).
--include_lib("eunit/include/eunit.hrl").
-
-incr_test() ->
-    start_link(),
-    start_timer(test),
-    incr_counter(plop, 42),
-    ?assertEqual(42, get_counter(plop)),
-    incr_counter(plop, 1),
-    ?assertEqual(43, get_counter(plop)),
-    reset_counter(plop),
-    incr_counter(plop, 3),
-    ?assertEqual(3, get_counter(plop)),
-    ?assert(get_timer(test) < 100).
--endif.

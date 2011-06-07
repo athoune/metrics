@@ -1,4 +1,5 @@
 -module(metrics_app).
+-author('mathieu@garambrogne.net').
 
 -behaviour(application).
 

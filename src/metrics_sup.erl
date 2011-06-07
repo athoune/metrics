@@ -1,5 +1,5 @@
-
 -module(metrics_sup).
+-author('mathieu@garambrogne.net').
 
 -behaviour(supervisor).
 
