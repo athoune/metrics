@@ -9,7 +9,9 @@ handle_info/2, terminate/2, code_change/3]).
 -export([
     incr_counter/2,
     get_counter/1,
-    reset_counter/1
+    reset_counter/1,
+    start_timer/1,
+    get_timer/1
 ]).
 
 -record(state, {counter, timer}).
@@ -45,8 +47,10 @@ init([]) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
-handle_call({get, Key}, _From, State) ->
+handle_call({get_counter, Key}, _From, State) ->
     {reply, dict:fetch(Key, State#state.counter), State};
+handle_call({get_timer, Key}, _From, State) ->
+    {reply, timer:now_diff(now(), dict:fetch(Key, State#state.timer)), State};
 handle_call(_Request, _From, State) ->
     {reply, State}.
 
@@ -69,7 +73,11 @@ handle_cast({incr_counter, Key, Incr}, State) ->
 handle_cast({reset_counter, Key}, State) ->
     {noreply, State#state{
         counter = dict:store(Key, 0, State#state.counter)
-    }};    
+    }};
+handle_cast({start_timer, Key}, State) ->
+    {noreply, State#state{
+        timer = dict:store(Key, now(), State#state.timer)
+    }};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -99,26 +107,37 @@ terminate(_Reason, State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+%%--------------------------------------------------------------------
+%% Public API
+%%--------------------------------------------------------------------
 
 incr_counter(Key, Inc) ->
     gen_server:cast(?MODULE, {incr_counter, Key, Inc}).
 
 get_counter(Key) ->
-    gen_server:call(?MODULE, {get, Key}).
+    gen_server:call(?MODULE, {get_counter, Key}).
 
 reset_counter(Key) ->
     gen_server:cast(?MODULE, {reset_counter, Key}).
+
+start_timer(Key) ->
+    gen_server:cast(?MODULE, {start_timer, Key}).
+
+get_timer(Key) ->
+    gen_server:call(?MODULE, {get_timer, Key}).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
 incr_test() ->
     start_link(),
+    start_timer(test),
     incr_counter(plop, 42),
     ?assertEqual(42, get_counter(plop)),
     incr_counter(plop, 1),
     ?assertEqual(43, get_counter(plop)),
     reset_counter(plop),
     incr_counter(plop, 3),
-    ?assertEqual(3, get_counter(plop)).
+    ?assertEqual(3, get_counter(plop)),
+    ?assert(get_timer(test) < 100).
 -endif.
