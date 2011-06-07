@@ -48,6 +48,26 @@ handle_call({get_timer, Key}, _From, State) ->
     {reply, timer:now_diff(now(), dict:fetch(Key, State#state.timer)), State};
 handle_call({get_gauge, Key}, _From, State) ->
     {reply, dict:fetch(Key, State#state.gauge), State};
+handle_call({min_max, Gauge}, _From, State) ->
+    [Head | Tail] = dict:fetch(Gauge, State#state.gauge),
+    {Min, Max} = lists:foldl(fun(T, {Lmin, Lmax}) ->
+        Tmin = case T < Lmin of 
+            true -> T;
+            _ -> Lmin
+        end,
+        Tmax = case T > Lmax of
+            true -> T;
+            _ -> Lmax
+        end,
+        {Tmin, Tmax}
+        end, {Head, 0}, Tail),
+    {reply, {Min, Max}, State};
+handle_call({mean, Gauge}, _From, State) ->
+    G = dict:fetch(Gauge, State#state.gauge),
+    Sum = lists:foldl(fun(T, Acc) ->
+            T+Acc
+        end, 0, G),
+    {reply, Sum / length(G), State};
 handle_call(_Request, _From, State) ->
     {reply, State}.
 
