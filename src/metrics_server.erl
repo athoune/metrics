@@ -8,7 +8,8 @@ handle_info/2, terminate/2, code_change/3]).
 
 -export([
     incr_counter/2,
-    get_counter/1
+    get_counter/1,
+    reset_counter/1
 ]).
 
 -record(state, {counter, timer}).
@@ -65,6 +66,10 @@ handle_cast({incr_counter, Key, Incr}, State) ->
     {noreply, State#state{
         counter = dict:store(Key, Count, State#state.counter)
     }};
+handle_cast({reset_counter, Key}, State) ->
+    {noreply, State#state{
+        counter = dict:store(Key, 0, State#state.counter)
+    }};    
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -101,11 +106,19 @@ incr_counter(Key, Inc) ->
 get_counter(Key) ->
     gen_server:call(?MODULE, {get, Key}).
 
+reset_counter(Key) ->
+    gen_server:cast(?MODULE, {reset_counter, Key}).
+
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
 incr_test() ->
     start_link(),
     incr_counter(plop, 42),
-    ?assertEqual(42, get_counter(plop)).
+    ?assertEqual(42, get_counter(plop)),
+    incr_counter(plop, 1),
+    ?assertEqual(43, get_counter(plop)),
+    reset_counter(plop),
+    incr_counter(plop, 3),
+    ?assertEqual(3, get_counter(plop)).
 -endif.
