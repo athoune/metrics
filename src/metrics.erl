@@ -7,7 +7,9 @@
     reset_counter/1,
     start_timer/1,
     get_timer/1,
-    append_gauge/2
+    append_gauge/2,
+    erase_gauge/1,
+    get_gauge/1
 ]).
 
 %%--------------------------------------------------------------------
@@ -32,6 +34,9 @@ get_timer(Key) ->
 append_gauge(Key, Value) ->
     gen_server:cast(metrics_server, {append_gauge, Key, Value}).
 
+erase_gauge(Key) ->
+    gen_server:cast(metrics_server, {erase_gauge, Key}).
+
 get_gauge(Key) ->
     gen_server:call(metrics_server, {get_gauge, Key}).
 
@@ -54,5 +59,8 @@ gauge_test() ->
     append_gauge(truc, 42),
     append_gauge(truc, 40),
     append_gauge(truc, 44),
-    ?assertEqual([42, 40, 44], get_gauge(truc)).
+    ?assertEqual([42, 40, 44], get_gauge(truc)),
+    erase_gauge(truc),
+    append_gauge(truc, 4807),
+    ?assertEqual([4807], get_gauge(truc)).
 -endif.

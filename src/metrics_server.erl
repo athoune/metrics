@@ -73,6 +73,10 @@ handle_cast({append_gauge, Key, Value}, State) ->
     {noreply, State#state{
         gauge = dict:append(Key, Value, State#state.gauge)
     }};
+handle_cast({erase_gauge, Key}, State) ->
+    {noreply, State#state{
+        gauge = dict:erase(Key, State#state.gauge)
+    }};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
