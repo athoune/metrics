@@ -48,6 +48,8 @@ min_max(Gauge) ->
 mean(Gauge) ->
     gen_server:call(metrics_server, {mean, Gauge}).
 
+%[TODO] percentile(Gauge, Percentile), median(Gauge)
+
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
