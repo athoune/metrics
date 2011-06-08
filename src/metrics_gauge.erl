@@ -13,6 +13,7 @@
 %% Public API
 %%--------------------------------------------------------------------
 
+%% Value can be a list or one number
 append(Key, Value) ->
     gen_server:cast(metrics_server, {append_gauge, Key, Value}).
 
@@ -28,7 +29,11 @@ min_max(Gauge) ->
 mean(Gauge) ->
     gen_server:call(metrics_server, {mean, Gauge}).
 
-%[TODO] percentile(Gauge, Percentile), median(Gauge)
+%% http://en.wikipedia.org/wiki/Percentile
+%% 0 <= Percentile <= 100
+%% Percentile = 50 => median
+percentile(Gauge, Percentile) ->
+    gen_server:call(metrics_server, {percentile, Gauge, Percentile}).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -42,6 +47,10 @@ mean(Gauge) ->
         ?assertEqual(42.0, mean(truc)),
         metrics_gauge:erase(truc),
         append(truc, 4807),
-        ?assertEqual([4807], metrics_gauge:get(truc)).
-
+        ?assertEqual([4807], metrics_gauge:get(truc)),
+        metrics_gauge:erase(truc),
+        metrics_gauge:append(truc, [1,2,3,4,5,6,7,8,9,10]),
+        ?assertEqual(6, percentile(truc, 50)),
+        ?assertEqual(10, percentile(truc, 100)),
+        ?assertEqual(1, percentile(truc, 0)).
 -endif.

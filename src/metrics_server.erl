@@ -76,6 +76,14 @@ handle_call({erase_gauge, Key}, _From, State) ->
     {reply, ok, State#state{
         gauge = dict:erase(Key, State#state.gauge)
     }};
+handle_call({percentile, Gauge, Percentile}, _From, State) ->
+    G = lists:sort(dict:fetch(Gauge, State#state.gauge)),
+    case Percentile of
+        100 ->
+            {reply, lists:last(G), State};
+        _ ->
+            {reply, lists:nth(round(length(G)  * Percentile / 100 + 0.5), G), State}
+    end;
 handle_call(_Request, _From, State) ->
     {reply, State}.
 
@@ -92,6 +100,10 @@ handle_cast({incr_counter, Key, Incr}, State) ->
 handle_cast({start_timer, Key}, State) ->
     {noreply, State#state{
         timer = dict:store(Key, now(), State#state.timer)
+    }};
+handle_cast({append_gauge, Key, Value}, State) when is_list(Value) ->
+    {noreply, State#state{
+        gauge = dict:append_list(Key, Value, State#state.gauge)
     }};
 handle_cast({append_gauge, Key, Value}, State) ->
     {noreply, State#state{
@@ -125,3 +137,7 @@ terminate(_Reason, State) ->
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+%%--------------------------------------------------------------------
+%% Private API
+%%--------------------------------------------------------------------
