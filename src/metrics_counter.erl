@@ -18,4 +18,4 @@ get(Key) ->
     gen_server:call(metrics_server, {get_counter, Key}).
 
 reset(Key) ->
-    gen_server:cast(metrics_server, {reset_counter, Key}).
+    gen_server:call(metrics_server, {reset_counter, Key}).

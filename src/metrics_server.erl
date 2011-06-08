@@ -68,6 +68,14 @@ handle_call({mean, Gauge}, _From, State) ->
             T+Acc
         end, 0, G),
     {reply, Sum / length(G), State};
+handle_call({reset_counter, Key}, _From, State) ->
+    {reply, ok, State#state{
+        counter = dict:store(Key, 0, State#state.counter)
+    }};
+handle_call({erase_gauge, Key}, _From, State) ->
+    {reply, ok, State#state{
+        gauge = dict:erase(Key, State#state.gauge)
+    }};
 handle_call(_Request, _From, State) ->
     {reply, State}.
 
@@ -81,10 +89,6 @@ handle_cast({incr_counter, Key, Incr}, State) ->
     {noreply, State#state{
         counter = dict:update_counter(Key, Incr, State#state.counter)
     }};
-handle_cast({reset_counter, Key}, State) ->
-    {noreply, State#state{
-        counter = dict:store(Key, 0, State#state.counter)
-    }};
 handle_cast({start_timer, Key}, State) ->
     {noreply, State#state{
         timer = dict:store(Key, now(), State#state.timer)
@@ -92,10 +96,6 @@ handle_cast({start_timer, Key}, State) ->
 handle_cast({append_gauge, Key, Value}, State) ->
     {noreply, State#state{
         gauge = dict:append(Key, Value, State#state.gauge)
-    }};
-handle_cast({erase_gauge, Key}, State) ->
-    {noreply, State#state{
-        gauge = dict:erase(Key, State#state.gauge)
     }};
 handle_cast(_Msg, State) ->
     {noreply, State}.

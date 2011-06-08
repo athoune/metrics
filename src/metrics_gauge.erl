@@ -17,7 +17,7 @@ append(Key, Value) ->
     gen_server:cast(metrics_server, {append_gauge, Key, Value}).
 
 erase(Key) ->
-    gen_server:cast(metrics_server, {erase_gauge, Key}).
+    gen_server:call(metrics_server, {erase_gauge, Key}).
 
 get(Key) ->
     gen_server:call(metrics_server, {get_gauge, Key}).
