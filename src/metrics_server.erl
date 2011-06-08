@@ -60,7 +60,7 @@ handle_call({min_max, Gauge}, _From, State) ->
             _ -> Lmax
         end,
         {Tmin, Tmax}
-        end, {Head, 0}, Tail),
+        end, {Head, Head}, Tail),
     {reply, {Min, Max}, State};
 handle_call({mean, Gauge}, _From, State) ->
     G = dict:fetch(Gauge, State#state.gauge),
