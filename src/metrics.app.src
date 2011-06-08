@@ -4,8 +4,9 @@
   {vsn, "0.1"},
   {modules, [
     metrics,
-    metrics_server,
-    metrics_gauge
+    metrics_gauge,
+    metrics_counter,
+    metrics_timer
   ]},
   {registered, []},
   {applications, [
