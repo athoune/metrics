@@ -84,6 +84,8 @@ handle_call({percentile, Gauge, Percentile}, _From, State) ->
         _ ->
             {reply, lists:nth(round(length(G)  * Percentile / 100 + 0.5), G), State}
     end;
+handle_call({list_counter}, _From, State) ->
+    {reply, dict:to_list(State#state.counter),State};
 handle_call(_Request, _From, State) ->
     {reply, State}.
 
