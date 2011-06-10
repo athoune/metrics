@@ -5,6 +5,7 @@
     append/2,
     erase/1,
     get/1,
+    to_list/0,
     min_max/1,
     mean/1,
     percentile/2
@@ -19,10 +20,13 @@ append(Key, Value) ->
     gen_server:cast(metrics_server, {append_gauge, Key, Value}).
 
 erase(Key) ->
-    gen_server:call(metrics_server, {erase_gauge, Key}).
+    gen_server:cast(metrics_server, {erase_gauge, Key}).
 
 get(Key) ->
     gen_server:call(metrics_server, {get_gauge, Key}).
+
+to_list() ->
+    gen_server:call(metrics_server, {to_list_gauge}).
 
 min_max(Gauge) ->
     gen_server:call(metrics_server, {min_max, Gauge}).
