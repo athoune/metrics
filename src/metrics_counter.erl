@@ -23,7 +23,7 @@ get(Counter) ->
     gen_server:call(metrics_server, {get_counter, Counter}).
 
 reset(Counter) ->
-    gen_server:call(metrics_server, {reset_counter, Counter}).
+    gen_server:cast(metrics_server, {reset_counter, Counter}).
 
 to_list() ->
     gen_server:call(metrics_server, {list_counter}).

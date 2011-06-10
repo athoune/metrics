@@ -45,20 +45,20 @@ init([]) ->
 handle_call({get_counter, Key}, _From, State) ->
     {reply, dict:fetch(Key, State#state.counter), State};
 handle_call({get_timer, Key}, _From, State) ->
-{reply, timer:now_diff(now(), dict:fetch(Key, State#state.timer)), State};
-handle_call({reset_timer, Key}, _From, State) ->
-    {reply, ok, State#state{
-        timer = dict:erase(Key, State#state.timer)
-    }};
+    {reply, timer:now_diff(now(), dict:fetch(Key, State#state.timer)), State};
 handle_call({get_and_reset_timer, Key}, _From, State) ->
-    T = dict:fetch(Key, State#state.timer),
-    {reply, timer:now_diff(now(), T), State#state{
-        timer = dict:erase(Key, State#state.timer)
-    }};
+    {
+        reply,
+        timer:now_diff(now(), dict:fetch(Key, State#state.timer)),
+        State#state{
+            timer = dict:store(Key, now(), State#state.timer)}
+    };
 handle_call({exists_timer, Key}, _From, State) ->
     {reply, dict:is_key(Key, State#state.timer), State};
 handle_call({get_gauge, Key}, _From, State) ->
     {reply, dict:fetch(Key, State#state.gauge), State};
+handle_call({to_list_gauge}, _From, State) ->
+    {reply, dict:to_list(State#state.gauge), State};
 handle_call({min_max, Gauge}, _From, State) ->
     [Head | Tail] = dict:fetch(Gauge, State#state.gauge),
     {Min, Max} = lists:foldl(fun(T, {Lmin, Lmax}) ->
@@ -79,14 +79,6 @@ handle_call({mean, Gauge}, _From, State) ->
             T+Acc
         end, 0, G),
     {reply, Sum / length(G), State};
-handle_call({reset_counter, Key}, _From, State) ->
-    {reply, ok, State#state{
-        counter = dict:store(Key, 0, State#state.counter)
-    }};
-handle_call({erase_gauge, Key}, _From, State) ->
-    {reply, ok, State#state{
-        gauge = dict:erase(Key, State#state.gauge)
-    }};
 handle_call({percentile, Gauge, Percentile}, _From, State) ->
     G = lists:sort(dict:fetch(Gauge, State#state.gauge)),
     case Percentile of
@@ -110,9 +102,9 @@ handle_cast({incr_counter, Key, Incr}, State) ->
     {noreply, State#state{
         counter = dict:update_counter(Key, Incr, State#state.counter)
     }};
-handle_cast({start_timer, Key}, State) ->
+handle_cast({reset_counter, Key}, State) ->
     {noreply, State#state{
-        timer = dict:store(Key, now(), State#state.timer)
+        counter = dict:store(Key, 0, State#state.counter)
     }};
 handle_cast({append_gauge, Key, Value}, State) when is_list(Value) ->
     {noreply, State#state{
@@ -121,6 +113,14 @@ handle_cast({append_gauge, Key, Value}, State) when is_list(Value) ->
 handle_cast({append_gauge, Key, Value}, State) ->
     {noreply, State#state{
         gauge = dict:append(Key, Value, State#state.gauge)
+    }};
+handle_cast({init_timer, Key}, State) ->
+    {noreply, State#state{
+        timer = dict:store(Key, now(), State#state.timer)
+    }};
+handle_cast({erase_gauge, Key}, State) ->
+    {noreply, State#state{
+        gauge = dict:store(Key, [], State#state.gauge)
     }};
 handle_cast(_Msg, State) ->
     {noreply, State}.
