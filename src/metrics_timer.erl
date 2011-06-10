@@ -6,7 +6,7 @@
     get/1,
     reset/1,
     get_and_reset/1,
-    exist/1
+    exists/1
 ]).
 
 %%--------------------------------------------------------------------
@@ -25,5 +25,5 @@ reset(Key) ->
 get_and_reset(Key) ->
     gen_server:call(metrics_server, {get_and_reset_timer, Key}).
 
-exist(Key) ->
-    gen_server:call(metrics_server, {exist_timer, Key}).
+exists(Key) ->
+    gen_server:call(metrics_server, {exists_timer, Key}).

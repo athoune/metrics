@@ -54,7 +54,7 @@ handle_call({get_and_reset_timer, Key}, _From, State) ->
     {reply, timer:now_diff(now(), dict:fetch(Key, State#state.timer)), State#state{
         timer = dict:erase(Key, State#state.timer)
     }};
-handle_call({exist_timer, Key}, _From, State) ->
+handle_call({exists_timer, Key}, _From, State) ->
     {reply, dict:is_key(Key, State#state.timer), State};
 handle_call({get_gauge, Key}, _From, State) ->
     {reply, dict:fetch(Key, State#state.gauge), State};
