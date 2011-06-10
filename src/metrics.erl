@@ -17,5 +17,8 @@ incr_test() ->
     metrics_counter:reset(plop),
     metrics_counter:incr(plop, 3),
     ?assertEqual(3, metrics_counter:get(plop)),
-    ?assert(metrics_timer:get(test) < 500).
+    ?assert(metrics_timer:get(test) < 500),
+    ?assert(metrics_timer:exist(test)),
+    metrics_timer:reset(test),
+    ?assert(metrics_timer:exist(test) == false).
 -endif.

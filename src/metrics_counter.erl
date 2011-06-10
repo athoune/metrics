@@ -2,6 +2,7 @@
 -author('mathieu@garambrogne.net').
 
 -export([
+    incr/1,
     incr/2,
     get/1,
     reset/1,
@@ -11,6 +12,9 @@
 %%--------------------------------------------------------------------
 %% Public API
 %%--------------------------------------------------------------------
+
+incr(Counter) ->
+    gen_server:cast(metrics_server, {incr_counter, Counter, 1}).
 
 incr(Counter, Inc) ->
     gen_server:cast(metrics_server, {incr_counter, Counter, Inc}).
