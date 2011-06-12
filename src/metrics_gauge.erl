@@ -3,6 +3,7 @@
 
 -export([
     append/2,
+    append_timer/2,
     erase/1,
     get/1,
     to_list/0,
@@ -15,9 +16,11 @@
 %% Public API
 %%--------------------------------------------------------------------
 
-%% Value can be a list or one number
 append(Key, Value) ->
     gen_server:cast(metrics_server, {append_gauge, Key, Value}).
+
+append_timer(Key, Starting :: calendar:t_now()) ->
+    gen_server:cast(metrics_server, {append_gauge, Key, timer:now_diff(now(), Starting)}).
 
 erase(Key) ->
     gen_server:cast(metrics_server, {erase_gauge, Key}).
