@@ -10,7 +10,7 @@
 incr_test() ->
     metrics_server:start_link(),
 
-    metrics_timer:init(test),
+    Test = now(),
     metrics_counter:incr(plop, 42),
     ?assertEqual(42, metrics_counter:get(plop)),
     metrics_counter:incr(plop, 1),
@@ -18,11 +18,6 @@ incr_test() ->
     metrics_counter:reset(plop),
     metrics_counter:incr(plop, 3),
     ?assertEqual(3, metrics_counter:get(plop)),
-    ?assert(metrics_timer:get(test) < 500),
-    ?assert(metrics_timer:exists(test)),
-    metrics_timer:init(test),
-    metrics_timer:init(walrus),
-    ?assert(metrics_timer:exists(walrus)),
-    metrics_timer:get_and_reset(walrus).
+    ?assert(timer:now_diff(now(),Test) < 500).
 
 -endif.

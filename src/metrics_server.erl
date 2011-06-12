@@ -7,7 +7,7 @@
 -export([start_link/0, init/1, handle_call/3, handle_cast/2, 
 handle_info/2, terminate/2, code_change/3]).
 
--record(state, {counter, timer, gauge}).
+-record(state, {counter, gauge}).
 
 %%====================================================================
 %% api callbacks
@@ -29,7 +29,6 @@ start_link() ->
 init([]) ->
     {ok, #state{
         counter = dict:new(),
-        timer   = dict:new(),
         gauge   = dict:new()
     }}.
 
@@ -44,17 +43,6 @@ init([]) ->
 %%--------------------------------------------------------------------
 handle_call({get_counter, Key}, _From, State) ->
     {reply, dict:fetch(Key, State#state.counter), State};
-handle_call({get_timer, Key}, _From, State) ->
-    {reply, timer:now_diff(now(), dict:fetch(Key, State#state.timer)), State};
-handle_call({get_and_reset_timer, Key}, _From, State) ->
-    {
-        reply,
-        timer:now_diff(now(), dict:fetch(Key, State#state.timer)),
-        State#state{
-            timer = dict:store(Key, now(), State#state.timer)}
-    };
-handle_call({exists_timer, Key}, _From, State) ->
-    {reply, dict:is_key(Key, State#state.timer), State};
 handle_call({get_gauge, Key}, _From, State) ->
     {reply, dict:fetch(Key, State#state.gauge), State};
 handle_call({to_list_gauge}, _From, State) ->
@@ -113,10 +101,6 @@ handle_cast({append_gauge, Key, Value}, State) when is_list(Value) ->
 handle_cast({append_gauge, Key, Value}, State) ->
     {noreply, State#state{
         gauge = dict:append(Key, Value, State#state.gauge)
-    }};
-handle_cast({init_timer, Key}, State) ->
-    {noreply, State#state{
-        timer = dict:store(Key, now(), State#state.timer)
     }};
 handle_cast({erase_gauge, Key}, State) ->
     {noreply, State#state{

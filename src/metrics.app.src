@@ -5,8 +5,7 @@
   {modules, [
     metrics,
     metrics_gauge,
-    metrics_counter,
-    metrics_timer
+    metrics_counter
   ]},
   {registered, []},
   {applications, [
