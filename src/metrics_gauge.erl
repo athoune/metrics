@@ -16,15 +16,15 @@
 %% Public API
 %%--------------------------------------------------------------------
 
--spec append(any(), number()) -> none().
+-spec append(any(), number()) -> 'ok'.
 append(Key, Value) ->
     gen_server:cast(metrics_server, {append_gauge, Key, Value}).
 
--spec append_timer(any(), calendar:t_now()) -> none().
+-spec append_timer(any(), calendar:t_now()) -> 'ok'.
 append_timer(Key, Starting) ->
     gen_server:cast(metrics_server, {append_gauge, Key, timer:now_diff(now(), Starting)}).
 
--spec erase(any()) -> none().
+-spec erase(any()) -> 'ok'.
 erase(Key) ->
     gen_server:cast(metrics_server, {erase_gauge, Key}).
 

@@ -13,11 +13,11 @@
 %% Public API
 %%--------------------------------------------------------------------
 
--spec incr(any()) -> none().
+-spec incr(any()) -> 'ok'.
 incr(Counter) ->
     gen_server:cast(metrics_server, {incr_counter, Counter, 1}).
 
--spec incr(any(), integer()) -> none().
+-spec incr(any(), integer()) -> 'ok'.
 incr(Counter, Inc) ->
     gen_server:cast(metrics_server, {incr_counter, Counter, Inc}).
 
@@ -25,7 +25,7 @@ incr(Counter, Inc) ->
 get(Counter) ->
     gen_server:call(metrics_server, {get_counter, Counter}).
 
--spec reset(any()) -> none().
+-spec reset(any()) -> 'ok'.
 reset(Counter) ->
     gen_server:cast(metrics_server, {reset_counter, Counter}).
 
