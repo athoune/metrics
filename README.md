@@ -6,7 +6,7 @@ Counters for erlang apps.
 Two basics tools to get numbers from your application : 
 
 Counter
-_______
+-------
 
 How many time this action happens?
 
