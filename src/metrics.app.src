@@ -1,7 +1,7 @@
 {application, metrics,
  [
   {description, "Add some metrics in your application"},
-  {vsn, "0.2"},
+  {vsn, "0.4"},
   {modules, [
     metrics,
     metrics_gauge,
