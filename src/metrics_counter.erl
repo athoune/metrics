@@ -6,7 +6,9 @@
     incr/2,
     get/1,
     reset/1,
-    to_list/0
+    to_list/0,
+    to_file/0,
+    to_file/1
 ]).
 
 %%--------------------------------------------------------------------
@@ -32,3 +34,20 @@ reset(Counter) ->
 -spec to_list() -> list(tuple(any(), integer())).
 to_list() ->
     gen_server:call(metrics_server, {list_counter}).
+
+-spec to_file() -> 'ok'.
+to_file() ->
+    {Mega, Second, _} = now(),
+    to_file(io_lib:format("/tmp/counter.~w~w.csv", [Mega, Second])).
+
+-spec to_file(string()) -> 'ok'.
+to_file(FileName) ->
+    {ok, Fd} = file:open(FileName, [write]),
+    ok = dump_line(Fd, to_list()),
+    file:close(Fd).
+
+dump_line(_Fd, []) ->
+    ok;
+dump_line(Fd, [{Key, Value}|T]) ->
+    file:write(Fd, io_lib:format("~s;~w~n", [Key, Value])),
+    dump_line(Fd, T).
