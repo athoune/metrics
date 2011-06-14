@@ -1,0 +1,13 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
+%%! -pa ebin
+
+main([Node, Cookie]) ->
+    ok = application:start(inets),
+    net_kernel:start([metrics_dump@localhost]),
+    auth:set_cookie(node(), list_to_atom(Cookie)),
+    N = list_to_atom(Node),
+    pong = net_adm:ping(N),
+    io:format("~p~n", [rpc:call(N, metrics_counter, to_file, [])]);
+main(_) ->
+    ok.
