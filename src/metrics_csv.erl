@@ -1,19 +1,24 @@
--module(metrics_server).
+-module(metrics_csv).
 -author('mathieu@garambrogne.net').
 
 -behaviour(gen_server).
 
 %% gen_server callbacks
--export([start_link/0, init/1, handle_call/3, handle_cast/2, 
+-export([start_link/0, start_link/1, init/1, handle_call/3, handle_cast/2, 
 handle_info/2, terminate/2, code_change/3]).
 
--record(state, {start_time, counter, gauge}).
+-export([write_gauge/2, write_counter/2, write/4]).
+
+-record(state, {folder}).
 
 %%====================================================================
 %% api callbacks
 %%====================================================================
 start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    start_link("/tmp").
+
+start_link(Path) ->
+    gen_server:start(?MODULE, [Path], []).
 
 %%====================================================================
 %% gen_server callbacks
@@ -26,11 +31,9 @@ start_link() ->
 %%                         {stop, Reason}
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
-init([]) ->
+init([Path]) ->
     {ok, #state{
-        start_time = now(),
-        counter = dict:new(),
-        gauge   = dict:new()
+        folder = Path
     }}.
 
 %%--------------------------------------------------------------------
@@ -42,33 +45,6 @@ init([]) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
-handle_call({get_counter, Key}, _From, State) ->
-    {reply, dict:fetch(Key, State#state.counter), State};
-handle_call({get_gauge, Key}, _From, State) ->
-    {reply, dict:fetch(Key, State#state.gauge), State};
-handle_call({to_list_gauge}, _From, State) ->
-    {reply, compute_gauge(State#state.gauge), State};
-handle_call({min_max, Gauge}, _From, State) ->
-    {reply,
-        metrics_math:min_max(dict:fetch(Gauge, State#state.gauge)),
-        State};
-handle_call({mean, Gauge}, _From, State) ->
-    {reply, metrics_math:mean(dict:fetch(Gauge, State#state.gauge)), State};
-handle_call({percentile, Gauge, Percentile}, _From, State) ->
-    {reply,
-        metrics_math:percentile(dict:fetch(Gauge, State#state.gauge), Percentile),
-        State};
-handle_call({list_counter}, _From, State) ->
-    {reply, dict:to_list(State#state.counter), State};
-handle_call({snapshot}, _From, State) ->
-    C = State#state.counter,
-    G = State#state.gauge,
-    S = now(),
-    {reply, {State#state.start_time, S, dict:to_list(C), compute_gauge(G)}, State#state{
-        start_time = S,
-        counter = dict:new(),
-        gauge   = dict:new()
-    }};
 handle_call(_Request, _From, State) ->
     {reply, State}.
 
@@ -78,29 +54,21 @@ handle_call(_Request, _From, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
-handle_cast({incr_counter, Key, Incr}, State) ->
-    {noreply, State#state{
-        counter = dict:update_counter(Key, Incr, State#state.counter)
-    }};
-handle_cast({reset_counter, Key}, State) ->
-    {noreply, State#state{
-        counter = dict:store(Key, 0, State#state.counter)
-    }};
-handle_cast({append_gauge, Key, Value}, State) when is_list(Value) ->
-    {noreply, State#state{
-        gauge = dict:append_list(Key, Value, State#state.gauge)
-    }};
-handle_cast({append_gauge, Key, Value}, State) ->
-    {noreply, State#state{
-        gauge = dict:append(Key, Value, State#state.gauge)
-    }};
-handle_cast({erase_gauge, Key}, State) ->
-    {noreply, State#state{
-        gauge = dict:store(Key, [], State#state.gauge)
-    }};
-handle_cast({flush}, State) ->
-    metrics_gauge:to_file(),
-    metrics_counter:to_file(),
+handle_cast({write_gauge, Values, {Mega, Second, _}}, State) ->
+    io:format("~s/gauge.~w~w.csv", [State#state.folder, Mega, Second]),
+    {ok, Fd} = file:open(
+        io_lib:format("~s/gauge.~w~w.csv", [State#state.folder, Mega, Second]),
+        [write]),
+    ok = gauge_lines(Fd, Values),
+    file:close(Fd),
+    {noreply, State};
+handle_cast({write_counter, Values, {Mega, Second, _}}, State) ->
+    io:format("~s/counter.~w~w.csv", [State#state.folder, Mega, Second]),
+    {ok, Fd} = file:open(
+        io_lib:format("~s/counter.~w~w.csv", [State#state.folder, Mega, Second]),
+        [write]),
+    ok = counter_lines(Fd, Values),
+    file:close(Fd),
     {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -132,13 +100,30 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%--------------------------------------------------------------------
+%% Public API
+%%--------------------------------------------------------------------
+
+write_gauge(Values, Time) ->
+    gen_server:cast(?MODULE, {write_gauge, Values, Time}).
+
+write_counter(Values, Time) ->
+    gen_server:cast(?MODULE, {write_counter, Values, Time}).
+
+write(_StartTime, EndTime, Counters, Gauges) ->
+    ok = write_counter(Counters, EndTime),
+    write_gauge(Gauges, EndTime).
+%%--------------------------------------------------------------------
 %% Private API
 %%--------------------------------------------------------------------
 
-compute_gauge(Gauges) ->
-    dict:fold(
-        fun(Key, Values, AccIn) ->
-            {Min, Max} = metrics_math:min_max(Values),
-            AccIn ++ [{Key, metrics_math:percentile(Values, 50), Min, Max}]
-        end,
-    [], Gauges).
+gauge_lines(_Fd, []) ->
+    ok;
+gauge_lines(Fd, [{Key, Median, Min, Max}|T]) ->
+    file:write(Fd, io_lib:format("~s;~w;~w;~w~n", [Key, Median, Min, Max])),
+    gauge_lines(Fd, T).
+
+counter_lines(_Fd, []) ->
+    ok;
+counter_lines(Fd, [{Key, Value}|T]) ->
+    file:write(Fd, io_lib:format("~s;~w~n", [Key, Value])),
+    counter_lines(Fd, T).

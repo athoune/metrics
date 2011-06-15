@@ -2,12 +2,18 @@
 -author('mathieu@garambrogne.net').
 
 -export([
-    snapshot/0
+    snapshot/0,
+    dump/1
 ]).
 
--spec snapshot() -> tuple(dict(), dict()).
+-spec snapshot() -> tuple(tuple(number(), number(), number()),
+    tuple(number(), number(), number()), list(), list()).
 snapshot() ->
     gen_server:call(metrics_server, {snapshot}).
+
+dump(Driver) ->
+    {Start, End, Counters, Gauges} = snapshot(),
+    Driver:write(Start, End, Counters, Gauges).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
