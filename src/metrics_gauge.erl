@@ -7,6 +7,8 @@
     erase/1,
     get/1,
     to_list/0,
+    to_file/0,
+    to_file/1,
     min_max/1,
     mean/1,
     percentile/2
@@ -35,6 +37,21 @@ get(Key) ->
 -spec to_list() -> list(tuple(any(), list(number()))).
 to_list() ->
     gen_server:call(metrics_server, {to_list_gauge}).
+
+to_file() ->
+    {Mega, Second, _} = now(),
+    to_file(io_lib:format("/tmp/gauge.~w~w.csv", [Mega, Second])).
+
+to_file(FileName) ->
+    {ok, Fd} = file:open(FileName, [write]),
+    ok = dump_line(Fd, to_list()),
+    file:close(Fd).
+
+dump_line(_Fd, []) ->
+    ok;
+dump_line(Fd, [{Key, _Value}|T]) ->
+    file:write(Fd, io_lib:format("~s;~w~n", [Key, percentile(Key, 50)])),
+    dump_line(Fd, T).
 
 -spec min_max(any()) -> tuple(number(), number()).
 min_max(Gauge) ->

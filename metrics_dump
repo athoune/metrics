@@ -8,6 +8,7 @@ main([Node, Cookie]) ->
     auth:set_cookie(node(), list_to_atom(Cookie)),
     N = list_to_atom(Node),
     pong = net_adm:ping(N),
-    io:format("~p~n", [rpc:call(N, metrics_counter, to_file, [])]);
+    io:format("~p~n", [rpc:call(N, metrics_counter, to_file, [])]),
+    io:format("~p~n", [rpc:call(N, metrics_gauge, to_file, [])]);
 main(_) ->
     ok.
