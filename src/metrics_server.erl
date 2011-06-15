@@ -49,17 +49,21 @@ handle_call({to_list_gauge}, _From, State) ->
     {reply,
     dict:fold(
         fun(Key, Values, AccIn) ->
-            {Min, Max} = min_max(Values),
-            AccIn ++ [{Key, percentile(Values, 50), Min, Max}]
+            {Min, Max} = metrics_math:min_max(Values),
+            AccIn ++ [{Key, metrics_math:percentile(Values, 50), Min, Max}]
         end,
     [], State#state.gauge)
     , State};
 handle_call({min_max, Gauge}, _From, State) ->
-    {reply, min_max(dict:fetch(Gauge, State#state.gauge)), State};
+    {reply,
+        metrics_math:min_max(dict:fetch(Gauge, State#state.gauge)),
+        State};
 handle_call({mean, Gauge}, _From, State) ->
-    {reply, mean(dict:fetch(Gauge, State#state.gauge)), State};
+    {reply, metrics_math:mean(dict:fetch(Gauge, State#state.gauge)), State};
 handle_call({percentile, Gauge, Percentile}, _From, State) ->
-    {reply, percentile(dict:fetch(Gauge, State#state.gauge), Percentile), State};
+    {reply,
+        metrics_math:percentile(dict:fetch(Gauge, State#state.gauge), Percentile),
+        State};
 handle_call({list_counter}, _From, State) ->
     {reply, dict:to_list(State#state.counter),State};
 handle_call(_Request, _From, State) ->
@@ -127,33 +131,3 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %% Private API
 %%--------------------------------------------------------------------
-
-mean(Values) ->
-    Sum = lists:foldl(fun(T, Acc) ->
-            T+Acc
-        end, 0, Values),
-    Sum / length(Values).
-
-min_max(Values) ->
-    [Head | Tail] = Values,
-    {Min, Max} = lists:foldl(fun(T, {Lmin, Lmax}) ->
-        Tmin = case T < Lmin of
-            true -> T;
-            _ -> Lmin
-        end,
-        Tmax = case T > Lmax of
-            true -> T;
-            _ -> Lmax
-        end,
-        {Tmin, Tmax}
-        end, {Head, Head}, Tail),
-    {Min, Max}.
-
-percentile(Values, Percentile) ->
-    G = lists:sort(Values),
-    case Percentile of
-        100 ->
-            lists:last(G);
-        _ ->
-            lists:nth(round(length(G)  * Percentile / 100 + 0.5), G)
-    end.
