@@ -44,14 +44,14 @@ to_file() ->
 
 to_file(FileName) ->
     {ok, Fd} = file:open(FileName, [write]),
-    ok = dump_line(Fd, to_list()),
+    ok = dump_lines(Fd, to_list()),
     file:close(Fd).
 
-dump_line(_Fd, []) ->
+dump_lines(_Fd, []) ->
     ok;
-dump_line(Fd, [{Key, _Value}|T]) ->
-    file:write(Fd, io_lib:format("~s;~w~n", [Key, percentile(Key, 50)])),
-    dump_line(Fd, T).
+dump_lines(Fd, [{Key, Median, Min, Max}|T]) ->
+    file:write(Fd, io_lib:format("~s;~w;~w;~w~n", [Key, Median, Min, Max])),
+    dump_lines(Fd, T).
 
 -spec min_max(any()) -> tuple(number(), number()).
 min_max(Gauge) ->

@@ -46,35 +46,20 @@ handle_call({get_counter, Key}, _From, State) ->
 handle_call({get_gauge, Key}, _From, State) ->
     {reply, dict:fetch(Key, State#state.gauge), State};
 handle_call({to_list_gauge}, _From, State) ->
-    {reply, dict:to_list(State#state.gauge), State};
+    {reply,
+    dict:fold(
+        fun(Key, Values, AccIn) ->
+            {Min, Max} = min_max(Values),
+            AccIn ++ [{Key, percentile(Values, 50), Min, Max}]
+        end,
+    [], State#state.gauge)
+    , State};
 handle_call({min_max, Gauge}, _From, State) ->
-    [Head | Tail] = dict:fetch(Gauge, State#state.gauge),
-    {Min, Max} = lists:foldl(fun(T, {Lmin, Lmax}) ->
-        Tmin = case T < Lmin of 
-            true -> T;
-            _ -> Lmin
-        end,
-        Tmax = case T > Lmax of
-            true -> T;
-            _ -> Lmax
-        end,
-        {Tmin, Tmax}
-        end, {Head, Head}, Tail),
-    {reply, {Min, Max}, State};
+    {reply, min_max(dict:fetch(Gauge, State#state.gauge)), State};
 handle_call({mean, Gauge}, _From, State) ->
-    G = dict:fetch(Gauge, State#state.gauge),
-    Sum = lists:foldl(fun(T, Acc) ->
-            T+Acc
-        end, 0, G),
-    {reply, Sum / length(G), State};
+    {reply, mean(dict:fetch(Gauge, State#state.gauge)), State};
 handle_call({percentile, Gauge, Percentile}, _From, State) ->
-    G = lists:sort(dict:fetch(Gauge, State#state.gauge)),
-    case Percentile of
-        100 ->
-            {reply, lists:last(G), State};
-        _ ->
-            {reply, lists:nth(round(length(G)  * Percentile / 100 + 0.5), G), State}
-    end;
+    {reply, percentile(dict:fetch(Gauge, State#state.gauge), Percentile), State};
 handle_call({list_counter}, _From, State) ->
     {reply, dict:to_list(State#state.counter),State};
 handle_call(_Request, _From, State) ->
@@ -106,6 +91,10 @@ handle_cast({erase_gauge, Key}, State) ->
     {noreply, State#state{
         gauge = dict:store(Key, [], State#state.gauge)
     }};
+handle_cast({flush}, State) ->
+    metrics_gauge:to_file(),
+    metrics_counter:to_file(),
+    {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -138,3 +127,33 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %% Private API
 %%--------------------------------------------------------------------
+
+mean(Values) ->
+    Sum = lists:foldl(fun(T, Acc) ->
+            T+Acc
+        end, 0, Values),
+    Sum / length(Values).
+
+min_max(Values) ->
+    [Head | Tail] = Values,
+    {Min, Max} = lists:foldl(fun(T, {Lmin, Lmax}) ->
+        Tmin = case T < Lmin of
+            true -> T;
+            _ -> Lmin
+        end,
+        Tmax = case T > Lmax of
+            true -> T;
+            _ -> Lmax
+        end,
+        {Tmin, Tmax}
+        end, {Head, Head}, Tail),
+    {Min, Max}.
+
+percentile(Values, Percentile) ->
+    G = lists:sort(Values),
+    case Percentile of
+        100 ->
+            lists:last(G);
+        _ ->
+            lists:nth(round(length(G)  * Percentile / 100 + 0.5), G)
+    end.
