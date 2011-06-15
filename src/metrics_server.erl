@@ -46,14 +46,7 @@ handle_call({get_counter, Key}, _From, State) ->
 handle_call({get_gauge, Key}, _From, State) ->
     {reply, dict:fetch(Key, State#state.gauge), State};
 handle_call({to_list_gauge}, _From, State) ->
-    {reply,
-    dict:fold(
-        fun(Key, Values, AccIn) ->
-            {Min, Max} = metrics_math:min_max(Values),
-            AccIn ++ [{Key, metrics_math:percentile(Values, 50), Min, Max}]
-        end,
-    [], State#state.gauge)
-    , State};
+    {reply, compute_gauge(State#state.gauge), State};
 handle_call({min_max, Gauge}, _From, State) ->
     {reply,
         metrics_math:min_max(dict:fetch(Gauge, State#state.gauge)),
@@ -65,7 +58,14 @@ handle_call({percentile, Gauge, Percentile}, _From, State) ->
         metrics_math:percentile(dict:fetch(Gauge, State#state.gauge), Percentile),
         State};
 handle_call({list_counter}, _From, State) ->
-    {reply, dict:to_list(State#state.counter),State};
+    {reply, dict:to_list(State#state.counter), State};
+handle_call({snapshot}, _From, State) ->
+    C = State#state.counter,
+    G = State#state.gauge,
+    {reply, {C, G}, State#state{
+        counter = dict:new(),
+        gauge   = dict:new()
+    }};
 handle_call(_Request, _From, State) ->
     {reply, State}.
 
@@ -131,3 +131,11 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %% Private API
 %%--------------------------------------------------------------------
+
+compute_gauge(Gauges) ->
+    dict:fold(
+        fun(Key, Values, AccIn) ->
+            {Min, Max} = metrics_math:min_max(Values),
+            AccIn ++ [{Key, metrics_math:percentile(Values, 50), Min, Max}]
+        end,
+    [], Gauges).

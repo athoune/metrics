@@ -2,7 +2,12 @@
 -author('mathieu@garambrogne.net').
 
 -export([
+    snapshot/0
 ]).
+
+-spec snapshot() -> tuple(dict(), dict()).
+snapshot() ->
+    gen_server:call(metrics_server, {snapshot}).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
