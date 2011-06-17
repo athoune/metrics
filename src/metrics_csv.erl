@@ -32,6 +32,7 @@ start_link(Path) ->
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
 init([Path]) ->
+    error_logger:info_msg("Starting CSV server with path: ~s~n", [Path]),
     {ok, #state{
         folder = Path
     }}.
@@ -55,7 +56,6 @@ handle_call(_Request, _From, State) ->
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
 handle_cast({write_gauge, Values, {Mega, Second, _}}, State) ->
-    io:format("~s/gauge.~w~w.csv", [State#state.folder, Mega, Second]),
     {ok, Fd} = file:open(
         io_lib:format("~s/gauge.~w~w.csv", [State#state.folder, Mega, Second]),
         [write]),
@@ -63,7 +63,6 @@ handle_cast({write_gauge, Values, {Mega, Second, _}}, State) ->
     file:close(Fd),
     {noreply, State};
 handle_cast({write_counter, Values, {Mega, Second, _}}, State) ->
-    io:format("~s/counter.~w~w.csv", [State#state.folder, Mega, Second]),
     {ok, Fd} = file:open(
         io_lib:format("~s/counter.~w~w.csv", [State#state.folder, Mega, Second]),
         [write]),
