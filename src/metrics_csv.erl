@@ -18,7 +18,7 @@ start_link() ->
     start_link("/tmp").
 
 start_link(Path) ->
-    gen_server:start(?MODULE, [Path], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Path], []).
 
 %%====================================================================
 %% gen_server callbacks
@@ -112,6 +112,7 @@ write_counter(Values, Time) ->
 write(_StartTime, EndTime, Counters, Gauges) ->
     ok = write_counter(Counters, EndTime),
     write_gauge(Gauges, EndTime).
+
 %%--------------------------------------------------------------------
 %% Private API
 %%--------------------------------------------------------------------
