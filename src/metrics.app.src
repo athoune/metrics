@@ -14,5 +14,8 @@
                   stdlib
                  ]},
   {mod, { metrics_app, []}},
-  {env, []}
+  {env, [
+    {store, metrics_csv},
+    {period, 10000}
+  ]}
  ]}.

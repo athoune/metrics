@@ -19,8 +19,7 @@ dump(Driver) ->
 -include_lib("eunit/include/eunit.hrl").
 
 incr_test() ->
-    metrics_server:start_link(),
-
+    application:start(metrics),
     Test = now(),
     metrics_counter:incr(plop, 42),
     ?assertEqual(42, metrics_counter:get(plop)),

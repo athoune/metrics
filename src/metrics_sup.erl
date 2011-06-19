@@ -27,7 +27,7 @@ init([]) ->
     {ok, { {one_for_one, 5, 10}, [
         {metrics_server, {metrics_server, start_link, []},
         permanent, 2000, worker, [metrics_server]
-        },
-        ?CHILD(metrics_csv, worker)
+        }
+        %,?CHILD(metrics_csv, worker)
     ]} }.
 

@@ -7,13 +7,17 @@
 -export([start_link/0, init/1, handle_call/3, handle_cast/2, 
 handle_info/2, terminate/2, code_change/3]).
 
--record(state, {start_time, counter, gauge}).
+-export([dump/1]).
+
+-record(state, {start_time, counter, gauge, timer, writer}).
 
 %%====================================================================
 %% api callbacks
 %%====================================================================
 start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    {ok, Store} = application:get_env(metrics, store),
+    {ok, Period} = application:get_env(metrics, period),
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Store, Period], []).
 
 %%====================================================================
 %% gen_server callbacks
@@ -26,11 +30,16 @@ start_link() ->
 %%                         {stop, Reason}
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
-init([]) ->
+init([Writer, Period]) ->
+    error_logger:info_msg("Metrics starts with ~s / ~wms", [Writer, Period]),
+    {ok, Tref} = timer:apply_interval(Period, gen_server, cast, [?MODULE, {flush}]),
+    io:format("Tref : ~p~n", [Tref]),
     {ok, #state{
         start_time = now(),
         counter = dict:new(),
-        gauge   = dict:new()
+        gauge   = dict:new(),
+        timer   = Tref,
+        writer  = Writer
     }}.
 
 %%--------------------------------------------------------------------
@@ -98,11 +107,12 @@ handle_cast({erase_gauge, Key}, State) ->
     {noreply, State#state{
         gauge = dict:store(Key, [], State#state.gauge)
     }};
-handle_cast({flush}, State) ->
-    metrics_gauge:to_file(),
-    metrics_counter:to_file(),
+handle_cast({flush},{writer = Writer} = State) ->
+    error_logger:info_msg("flush~n"),
+    Writer:write(metrics:snapshot()),
     {noreply, State};
-handle_cast(_Msg, State) ->
+handle_cast(Msg, State) ->
+    error_logger:warn_msg("Cast : ~p~n", [Msg]),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -132,6 +142,10 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%--------------------------------------------------------------------
+%% Public API
+%%--------------------------------------------------------------------
+
+%%--------------------------------------------------------------------
 %% Private API
 %%--------------------------------------------------------------------
 
@@ -142,3 +156,7 @@ compute_gauge(Gauges) ->
             AccIn ++ [{Key, metrics_math:percentile(Values, 50), Min, Max}]
         end,
     [], Gauges).
+
+dump(Driver) ->
+    {Start, End, Counters, Gauges} = gen_server:call(?MODULE, {snapshot}),
+    Driver:write(Start, End, Counters, Gauges).
