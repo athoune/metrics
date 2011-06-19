@@ -33,7 +33,6 @@ start_link() ->
 init([Writer, Period]) ->
     error_logger:info_msg("Metrics starts with ~s / ~wms", [Writer, Period]),
     {ok, Tref} = timer:apply_interval(Period, gen_server, cast, [?MODULE, {flush}]),
-    io:format("Tref : ~p~n", [Tref]),
     {ok, #state{
         start_time = now(),
         counter = dict:new(),
@@ -70,14 +69,8 @@ handle_call({percentile, Gauge, Percentile}, _From, State) ->
 handle_call({list_counter}, _From, State) ->
     {reply, dict:to_list(State#state.counter), State};
 handle_call({snapshot}, _From, State) ->
-    C = State#state.counter,
-    G = State#state.gauge,
-    S = now(),
-    {reply, {State#state.start_time, S, dict:to_list(C), compute_gauge(G)}, State#state{
-        start_time = S,
-        counter = dict:new(),
-        gauge   = dict:new()
-    }};
+    {Start, End, Counters, Gauges, NewState } = snapshot(State),
+    {reply, {Start, End, Counters, Gauges}, NewState};
 handle_call(_Request, _From, State) ->
     {reply, State}.
 
@@ -107,12 +100,12 @@ handle_cast({erase_gauge, Key}, State) ->
     {noreply, State#state{
         gauge = dict:store(Key, [], State#state.gauge)
     }};
-handle_cast({flush},{writer = Writer} = State) ->
-    error_logger:info_msg("flush~n"),
-    Writer:write(metrics:snapshot()),
-    {noreply, State};
+handle_cast({flush},#state{writer = Writer} = State) ->
+    {Start, End, Counters, Gauges, _NewState } = snapshot(State),
+    Writer:write(Start, End, Counters, Gauges),
+    {noreply, State}; % NewState
 handle_cast(Msg, State) ->
-    error_logger:warn_msg("Cast : ~p~n", [Msg]),
+    error_logger:warning_msg("Cast missing pattern : ~p~n", [Msg]),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -145,6 +138,10 @@ code_change(_OldVsn, State, _Extra) ->
 %% Public API
 %%--------------------------------------------------------------------
 
+dump(Driver) ->
+    {Start, End, Counters, Gauges} = gen_server:call(?MODULE, {snapshot}),
+    Driver:write(Start, End, Counters, Gauges).
+
 %%--------------------------------------------------------------------
 %% Private API
 %%--------------------------------------------------------------------
@@ -157,6 +154,12 @@ compute_gauge(Gauges) ->
         end,
     [], Gauges).
 
-dump(Driver) ->
-    {Start, End, Counters, Gauges} = gen_server:call(?MODULE, {snapshot}),
-    Driver:write(Start, End, Counters, Gauges).
+snapshot(State) ->
+    C = State#state.counter,
+    G = State#state.gauge,
+    S = now(),
+    {State#state.start_time, S, dict:to_list(C), compute_gauge(G), State#state{
+        start_time = S,
+        counter = dict:new(),
+        gauge   = dict:new()
+    }}.
