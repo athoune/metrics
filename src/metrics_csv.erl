@@ -1,6 +1,7 @@
 -module(metrics_csv).
 -author('mathieu@garambrogne.net').
 
+-behaviour(metrics_writer).
 -behaviour(gen_server).
 
 %% gen_server callbacks
