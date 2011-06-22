@@ -12,18 +12,34 @@ import csv
 
 class Datas(object):
     def __init__(self, folder):
-        keys = set()
+        "Read data from a folder"
+        self.keys = set()
         counters = glob.glob('%s/counter.*.csv' % folder)
-        table = {}
+        self.table = {}
         for c in counters:
             reader = csv.reader(open(c, 'rb'), delimiter=';')
             line = {}
             for row in reader:
-                keys.add(row[0])
+                self.keys.add(row[0])
                 line[row[0]] = int(row[1])
-            table[int(c.split('.')[-2])] = line
-        print table
-        print keys
+            self.table[int(c.split('.')[-2])] = line
+    def datas(self):
+        "Build data array. First line is column name"
+        keys = list(self.keys)
+        keys.sort()
+        yield ['timestamp'] + keys
+        times = self.table.keys()
+        times.sort()
+        for time in times:
+            cols = [time]
+            for k in keys:
+                cols.append(self.table[time].get(k, 0))
+            yield cols
+    def to_csv(self, path):
+        "Dump data as a full CSV"
+        writer = csv.writer(open(path, "wb"), delimiter=';')
+        for l in d.datas():
+            writer.writerow(l)
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -31,3 +47,4 @@ if __name__ == '__main__':
     else:
         rep = sys.argv[1]
     d = Datas(rep)
+    d.to_csv('/tmp/counter.csv')
