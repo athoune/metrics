@@ -23,7 +23,7 @@ init([]) ->
     {ok, #state{}}.
 
 handle_event({Type, _Gleader, _Infos}, State) ->
-    metrics_counter:incr(Type),
+    metrics_counter:incr(lists:flatten(io_lib:format("error_handler:~s", [Type]))),
     {ok, State}.
 
 handle_call(_Request, State) ->

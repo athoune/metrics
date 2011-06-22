@@ -15,6 +15,7 @@ start(_StartType, _StartArgs) ->
     {ok, Writer} = application:get_env(metrics, store),
     supervisor:start_child(metrics_sup, {Writer,
         {Writer, start_link, []}, permanent, 5000, worker, [Writer]}),
+    metrics_error_handler:register_with_logger(),
     {ok, Pid}.
 
 stop(_State) ->

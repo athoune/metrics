@@ -32,12 +32,12 @@ start_link() ->
 %%--------------------------------------------------------------------
 init([Writer, Period]) ->
     error_logger:info_msg("Metrics starts with ~s / ~wms", [Writer, Period]),
-    {ok, Tref} = timer:apply_interval(Period, gen_server, cast, [?MODULE, {flush}]),
+    %{ok, Tref} = timer:apply_interval(Period, gen_server, cast, [?MODULE, {flush}]),
     {ok, #state{
         start_time = now(),
         counter = dict:new(),
         gauge   = dict:new(),
-        timer   = Tref,
+     %   timer   = Tref,
         writer  = Writer
     }}.
 
