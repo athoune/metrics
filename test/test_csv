@@ -4,6 +4,7 @@
 
 main(_) ->
     application:start(metrics),
+    metrics:add_writer(metrics_csv),
     metrics_gauge:append(potatoe, 42),
     metrics_gauge:append(potatoe, 41),
     metrics_gauge:append(potatoe, 43),

@@ -3,7 +3,8 @@
 
 -export([
     snapshot/0,
-    dump/1
+    dump/1,
+    add_writer/1
 ]).
 
 -spec snapshot() -> tuple(tuple(number(), number(), number()),
@@ -14,6 +15,12 @@ snapshot() ->
 dump(Driver) ->
     {Start, End, Counters, Gauges} = snapshot(),
     Driver:write(Start, End, Counters, Gauges).
+
+% metrics_csv
+add_writer(Writer) ->
+    supervisor:start_child(metrics_sup, {Writer,
+        {Writer, start_link, []}, permanent, 5000, worker, [Writer]}).
+    
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").

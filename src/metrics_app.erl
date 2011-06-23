@@ -12,9 +12,6 @@
 
 start(_StartType, _StartArgs) ->
     {ok, Pid} = metrics_sup:start_link(),
-    {ok, Writer} = application:get_env(metrics, store),
-    supervisor:start_child(metrics_sup, {Writer,
-        {Writer, start_link, []}, permanent, 5000, worker, [Writer]}),
     metrics_error_handler:register_with_logger(),
     {ok, Pid}.
 
