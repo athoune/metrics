@@ -8,6 +8,5 @@ main(_) ->
     metrics_gauge:append(potatoe, 42),
     metrics_gauge:append(potatoe, 41),
     metrics_gauge:append(potatoe, 43),
-    metrics_csv:start_link(),
     metrics:dump(metrics_csv).
     

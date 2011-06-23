@@ -4,7 +4,9 @@
 -export([
     snapshot/0,
     dump/1,
-    add_writer/1
+    add_writer/1,
+    add_writer/2,
+    add_writer/3
 ]).
 
 -spec snapshot() -> tuple(tuple(number(), number(), number()),
@@ -18,9 +20,13 @@ dump(Driver) ->
 
 % metrics_csv
 add_writer(Writer) ->
-    supervisor:start_child(metrics_sup, {Writer,
-        {Writer, start_link, []}, permanent, 5000, worker, [Writer]}).
-    
+    add_writer(Writer, 10000).
+add_writer(Writer, Period) ->
+    add_writer(Writer, Period, []).
+add_writer(Writer, Period, Options) ->
+    {ok, _} = supervisor:start_child(metrics_sup, {Writer,
+        {Writer, start_link, Options}, permanent, 5000, worker, [Writer]}),
+    gen_server:cast(metrics_server, {set_writer, Writer, Period}).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").

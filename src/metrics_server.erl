@@ -15,9 +15,7 @@ handle_info/2, terminate/2, code_change/3]).
 %% api callbacks
 %%====================================================================
 start_link() ->
-    {ok, Store} = application:get_env(metrics, store),
-    {ok, Period} = application:get_env(metrics, period),
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [Store, Period], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %%====================================================================
 %% gen_server callbacks
@@ -30,15 +28,13 @@ start_link() ->
 %%                         {stop, Reason}
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
-init([Writer, Period]) ->
-    error_logger:info_msg("Metrics starts with ~s / ~wms", [Writer, Period]),
-    %{ok, Tref} = timer:apply_interval(Period, gen_server, cast, [?MODULE, {flush}]),
+init([]) ->
     {ok, #state{
         start_time = now(),
         counter = dict:new(),
         gauge   = dict:new(),
-     %   timer   = Tref,
-        writer  = Writer
+        timer   = none,
+        writer  = none
     }}.
 
 %%--------------------------------------------------------------------
@@ -104,6 +100,13 @@ handle_cast({flush},#state{writer = Writer} = State) ->
     {Start, End, Counters, Gauges, _NewState } = snapshot(State),
     Writer:write(Start, End, Counters, Gauges),
     {noreply, State}; % NewState
+handle_cast({set_writer, Writer, Period}, State) ->
+    error_logger:info_msg("Metrics starts with ~s / ~wms~n", [Writer, Period]),
+    {ok, Tref} = timer:apply_interval(Period, gen_server, cast, [?MODULE, {flush}]),
+    {noreply, State#state{
+        timer   = Tref,
+        writer  = Writer
+    }};
 handle_cast(Msg, State) ->
     error_logger:warning_msg("Cast missing pattern : ~p~n", [Msg]),
     {noreply, State}.
