@@ -97,6 +97,7 @@ handle_cast({erase_gauge, Key}, State) ->
         gauge = dict:store(Key, [], State#state.gauge)
     }};
 handle_cast({flush},#state{writer = Writer} = State) ->
+    metrics:erlang_metrics(),
     {Start, End, Counters, Gauges, _NewState } = snapshot(State),
     Writer:write(Start, End, Counters, Gauges),
     {noreply, State}; % NewState

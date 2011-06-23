@@ -6,7 +6,8 @@
     dump/1,
     add_writer/1,
     add_writer/2,
-    add_writer/3
+    add_writer/3,
+    erlang_metrics/0
 ]).
 
 -spec snapshot() -> tuple(tuple(number(), number(), number()),
@@ -27,6 +28,16 @@ add_writer(Writer, Period, Options) ->
     {ok, _} = supervisor:start_child(metrics_sup, {Writer,
         {Writer, start_link, Options}, permanent, 5000, worker, [Writer]}),
     gen_server:cast(metrics_server, {set_writer, Writer, Period}).
+
+erlang_metrics() ->
+    metrics_gauge:append("erlang:processes", erlang:system_info(process_count)),
+    metrics_gauge:append("erlang:schedulers", erlang:system_info(schedulers)),
+    {RunTime, _} = erlang:statistics(runtime),
+    metrics_gauge:append("erlang:runtime", RunTime),
+    metrics_gauge:append("erlang:run_queue", erlang:statistics(run_queue)),
+    {{input, Rx}, {output, Tx}} = erlang:statistics(io),
+    metrics_gauge:append("erlang:io:input", Rx),
+    metrics_gauge:append("erlang:io:output", Tx).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
