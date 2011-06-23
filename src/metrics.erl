@@ -40,7 +40,6 @@ incr_test() ->
     ?assertEqual(43, metrics_counter:get(plop)),
     metrics_counter:reset(plop),
     metrics_counter:incr(plop, 3),
-    ?assertEqual(3, metrics_counter:get(plop)),
-    ?assert(timer:now_diff(now(),Test) < 500).
+    ?assertEqual(3, metrics_counter:get(plop)).
 
 -endif.
