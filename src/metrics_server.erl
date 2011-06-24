@@ -99,11 +99,14 @@ handle_cast({erase_gauge, Key}, State) ->
 handle_cast({flush},#state{writer = Writer} = State) ->
     metrics:erlang_metrics(),
     {Start, End, Counters, Gauges, _NewState } = snapshot(State),
-    Writer:write(Start, End, Counters, Gauges),
+    Writer:write(Start, End, lists:sort(Counters), lists:sort(Gauges)),
     {noreply, State}; % NewState
 handle_cast({set_writer, Writer, Period}, State) ->
     error_logger:info_msg("Metrics starts with ~s / ~wms~n", [Writer, Period]),
-    {ok, Tref} = timer:apply_interval(Period, gen_server, cast, [?MODULE, {flush}]),
+    {ok, Tref} = case Period of
+        0 -> {ok, none};
+        _ -> timer:apply_interval(Period, gen_server, cast, [?MODULE, {flush}])
+    end,
     {noreply, State#state{
         timer   = Tref,
         writer  = Writer
