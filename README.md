@@ -33,6 +33,26 @@ Start = now(),
 metrics_gauge:append_timer(my_timer, Start),
 ```
 
+Writing datas
+=============
+
+_metrics_ can use a _writer_ to store datas.
+Writer implements the behaviour _metrics_writer_.
+
+CSV
+---
+
+```erlang
+application:start(metrics),
+%driver, frequency (ms), arguments
+metrics:add_writer(metrics_csv, 10000, ["/tmp/my_folder"]),
+metrics_counter:incr("potatoe"),
+```
+
+A cli tools is provided to compile datas
+
+	./priv/bin/metrics_graph
+
 The future
 ==========
 
