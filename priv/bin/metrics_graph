@@ -15,7 +15,7 @@ class Datas(object):
     def __init__(self, folder):
         "Read data from a folder"
         self.keys = set()
-        counters = glob.glob('%s/counter.*.csv' % folder)
+        counters = glob.glob('%s/%s.*.csv' % (folder, self.file_name))
         self.table = {}
         for c in counters:
             reader = csv.reader(open(c, 'rb'), delimiter=';')
@@ -41,13 +41,21 @@ class Datas(object):
     def to_csv(self, path):
         "Dump data as a full CSV"
         writer = csv.writer(open(path, "wb"), delimiter=';')
-        for l in d.datas():
+        for l in self.datas():
             writer.writerow(l)
+
+class Counters(Datas):
+    file_name = 'counter'
+    
+class Gauges(Datas):
+    file_name = 'gauge'
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         rep = '/tmp'
     else:
         rep = sys.argv[1]
-    d = Datas(rep)
-    d.to_csv('/tmp/counter.csv')
+    c = Counters(rep)
+    c.to_csv('/tmp/counter.csv')
+    g = Gauges(rep)
+    g.to_csv('/tmp/gauge.csv')
