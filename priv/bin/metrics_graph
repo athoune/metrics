@@ -11,6 +11,7 @@ import sys
 import csv
 
 class Datas(object):
+
     def __init__(self, folder):
         "Read data from a folder"
         self.keys = set()
@@ -23,6 +24,7 @@ class Datas(object):
                 self.keys.add(row[0])
                 line[row[0]] = int(row[1])
             self.table[int(c.split('.')[-2])] = line
+
     def datas(self):
         "Build data array. First line is column name"
         keys = list(self.keys)
@@ -35,6 +37,7 @@ class Datas(object):
             for k in keys:
                 cols.append(self.table[time].get(k, 0))
             yield cols
+
     def to_csv(self, path):
         "Dump data as a full CSV"
         writer = csv.writer(open(path, "wb"), delimiter=';')
