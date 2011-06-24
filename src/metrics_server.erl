@@ -98,9 +98,9 @@ handle_cast({erase_gauge, Key}, State) ->
     }};
 handle_cast({flush},#state{writer = Writer} = State) ->
     metrics:erlang_metrics(),
-    {Start, End, Counters, Gauges, _NewState } = snapshot(State),
+    {Start, End, Counters, Gauges, NewState } = snapshot(State),
     Writer:write(Start, End, lists:sort(Counters), lists:sort(Gauges)),
-    {noreply, State}; % NewState
+    {noreply, NewState};
 handle_cast({set_writer, Writer, Period}, State) ->
     error_logger:info_msg("Metrics starts with ~s / ~wms~n", [Writer, Period]),
     {ok, Tref} = case Period of
