@@ -3,7 +3,6 @@
 
 -export([
     snapshot/0,
-    dump/1,
     add_writer/1,
     add_writer/2,
     add_writer/3,
@@ -14,10 +13,6 @@
     tuple(number(), number(), number()), list(), list()).
 snapshot() ->
     gen_server:call(metrics_server, {snapshot}).
-
-dump(Driver) ->
-    {Start, End, Counters, Gauges} = snapshot(),
-    Driver:write(Start, End, Counters, Gauges).
 
 % metrics_csv
 add_writer(Writer) ->
