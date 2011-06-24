@@ -32,8 +32,9 @@ class Datas(object):
         yield ['timestamp'] + keys
         times = self.table.keys()
         times.sort()
+        zero = times[0]
         for time in times:
-            cols = [time]
+            cols = [time - zero]
             for k in keys:
                 cols.append(self.table[time].get(k, 0))
             yield cols
