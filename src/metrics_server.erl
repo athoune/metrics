@@ -9,7 +9,13 @@ handle_info/2, terminate/2, code_change/3]).
 
 -export([dump/1]).
 
--record(state, {start_time, counter, gauge, timer, writer}).
+-record(state, {
+    start_time,
+    counter,
+    gauge,
+    countdown,
+    timer,
+    writer}).
 
 %%====================================================================
 %% api callbacks
@@ -31,10 +37,11 @@ start_link() ->
 init([]) ->
     {ok, #state{
         start_time = now(),
-        counter = dict:new(),
-        gauge   = dict:new(),
-        timer   = none,
-        writer  = none
+        counter    = dict:new(),
+        gauge      = dict:new(),
+        countdown  = dict:new(),
+        timer      = none,
+        writer     = none
     }}.
 
 %%--------------------------------------------------------------------
@@ -48,25 +55,33 @@ init([]) ->
 %%--------------------------------------------------------------------
 handle_call({get_counter, Key}, _From, State) ->
     {reply, dict:fetch(Key, State#state.counter), State};
+
 handle_call({get_gauge, Key}, _From, State) ->
     {reply, dict:fetch(Key, State#state.gauge), State};
+
 handle_call({to_list_gauge}, _From, State) ->
     {reply, compute_gauge(State#state.gauge), State};
+
 handle_call({min_max, Gauge}, _From, State) ->
     {reply,
         metrics_math:min_max(dict:fetch(Gauge, State#state.gauge)),
         State};
+
 handle_call({mean, Gauge}, _From, State) ->
     {reply, metrics_math:mean(dict:fetch(Gauge, State#state.gauge)), State};
+
 handle_call({percentile, Gauge, Percentile}, _From, State) ->
     {reply,
         metrics_math:percentile(dict:fetch(Gauge, State#state.gauge), Percentile),
         State};
+
 handle_call({list_counter}, _From, State) ->
     {reply, dict:to_list(State#state.counter), State};
+
 handle_call({snapshot}, _From, State) ->
     {Start, End, Counters, Gauges, NewState } = snapshot(State),
     {reply, {Start, End, Counters, Gauges}, NewState};
+
 handle_call(_Request, _From, State) ->
     {reply, State}.
 
@@ -80,27 +95,33 @@ handle_cast({incr_counter, Key, Incr}, State) ->
     {noreply, State#state{
         counter = dict:update_counter(Key, Incr, State#state.counter)
     }};
+
 handle_cast({reset_counter, Key}, State) ->
     {noreply, State#state{
         counter = dict:store(Key, 0, State#state.counter)
     }};
+
 handle_cast({append_gauge, Key, Value}, State) when is_list(Value) ->
     {noreply, State#state{
         gauge = dict:append_list(Key, Value, State#state.gauge)
     }};
+
 handle_cast({append_gauge, Key, Value}, State) ->
     {noreply, State#state{
         gauge = dict:append(Key, Value, State#state.gauge)
     }};
+
 handle_cast({erase_gauge, Key}, State) ->
     {noreply, State#state{
         gauge = dict:store(Key, [], State#state.gauge)
     }};
+
 handle_cast({flush},#state{writer = Writer} = State) ->
     metrics:erlang_metrics(),
     {Start, End, Counters, Gauges, NewState } = snapshot(State),
     Writer:write(Start, End, lists:sort(Counters), lists:sort(Gauges)),
     {noreply, NewState};
+
 handle_cast({set_writer, Writer, Period}, State) ->
     error_logger:info_msg("Metrics starts with ~s / ~wms~n", [Writer, Period]),
     {ok, Tref} = case Period of
@@ -111,6 +132,26 @@ handle_cast({set_writer, Writer, Period}, State) ->
         timer   = Tref,
         writer  = Writer
     }};
+
+handle_cast({create_countdown, Key, Value, Fun}, State) ->
+    {noreply, State#state{
+        countdown = dict:store(Key, {Value, Fun}, State#state.countdown)
+    }};
+
+handle_cast({decr_countdown, Key}, State) ->
+    {Value, Fun} = dict:fetch(Key, State#state.countdown),
+    case Value of
+        1 ->
+            Fun(),
+            {noreply, State#state{
+                countdown = dict:erase(Key, State#state.countdown)
+            }};
+        _ ->
+            {noreply, State#state{
+                countdown = dict:store(Key, {Value - 1, Fun}, State#state.countdown)
+            }}
+    end;
+
 handle_cast(Msg, State) ->
     error_logger:warning_msg("Cast missing pattern : ~p~n", [Msg]),
     {noreply, State}.
