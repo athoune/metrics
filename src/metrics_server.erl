@@ -135,20 +135,26 @@ handle_cast({set_writer, Writer, Period}, State) ->
 
 handle_cast({create_countdown, Key, Value, Fun}, State) ->
     {noreply, State#state{
-        countdown = dict:store(Key, {Value, Fun}, State#state.countdown)
+        countdown = dict:store(Key, {Value, Fun, now()}, State#state.countdown)
     }};
 
-handle_cast({decr_countdown, Key}, State) ->
-    {Value, Fun} = dict:fetch(Key, State#state.countdown),
+handle_cast({decr_countdown, Key, Step}, State) ->
+    {Value, Fun, StartTime} = dict:fetch(Key, State#state.countdown),
+    case (Value rem 100) of
+        0 ->
+            error_logger:info_msg("counting : ~w 10k~n", [Value / 10000]);
+        _ ->
+            nop
+    end,
     case Value of
-        1 ->
-            Fun(),
+        Step ->
+            Fun(timer:now_diff(now(), StartTime)),
             {noreply, State#state{
                 countdown = dict:erase(Key, State#state.countdown)
             }};
         _ ->
             {noreply, State#state{
-                countdown = dict:store(Key, {Value - 1, Fun}, State#state.countdown)
+                countdown = dict:store(Key, {Value - Step, Fun, StartTime}, State#state.countdown)
             }}
     end;
 
