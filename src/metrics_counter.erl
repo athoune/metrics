@@ -25,7 +25,7 @@ incr(Counter, Inc) ->
 
 -spec get(any()) -> integer().
 get(Counter) ->
-    gen_event:call(metrics_event, {get_counter, Counter}).
+    gen_event:call(metrics_event, metrics_server, {get_counter, Counter}).
 
 -spec reset(any()) -> 'ok'.
 reset(Counter) ->
@@ -33,7 +33,7 @@ reset(Counter) ->
 
 -spec to_list() -> list(tuple(any(), integer())).
 to_list() ->
-    gen_event:call(metrics_event, {list_counter}).
+    gen_event:call(metrics_event, metrics_server, {list_counter}).
 
 -spec to_file() -> 'ok'.
 to_file() ->

@@ -4,7 +4,7 @@
 -behaviour(gen_event).
 
 %% gen_server callbacks
--export([start_link/0, init/1, handle_call/3, handle_event/2,
+-export([start_link/0, init/1, handle_call/2, handle_event/2,
 handle_info/2, terminate/2, code_change/3]).
 
 -export([dump/1]).
@@ -53,36 +53,36 @@ init([]) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
-handle_call({get_counter, Key}, _From, State) ->
+handle_call({get_counter, Key}, State) ->
     {ok, dict:fetch(Key, State#state.counter), State};
 
-handle_call({get_gauge, Key}, _From, State) ->
+handle_call({get_gauge, Key}, State) ->
     {ok, dict:fetch(Key, State#state.gauge), State};
 
-handle_call({to_list_gauge}, _From, State) ->
+handle_call({to_list_gauge}, State) ->
     {ok, compute_gauge(State#state.gauge), State};
 
-handle_call({min_max, Gauge}, _From, State) ->
+handle_call({min_max, Gauge}, State) ->
     {ok,
         metrics_math:min_max(dict:fetch(Gauge, State#state.gauge)),
         State};
 
-handle_call({mean, Gauge}, _From, State) ->
+handle_call({mean, Gauge}, State) ->
     {ok, metrics_math:mean(dict:fetch(Gauge, State#state.gauge)), State};
 
-handle_call({percentile, Gauge, Percentile}, _From, State) ->
+handle_call({percentile, Gauge, Percentile}, State) ->
     {ok,
         metrics_math:percentile(dict:fetch(Gauge, State#state.gauge), Percentile),
         State};
 
-handle_call({list_counter}, _From, State) ->
+handle_call({list_counter}, State) ->
     {ok, dict:to_list(State#state.counter), State};
 
-handle_call({snapshot}, _From, State) ->
+handle_call({snapshot}, State) ->
     {Start, End, Counters, Gauges, NewState } = snapshot(State),
     {ok, {Start, End, Counters, Gauges}, NewState};
 
-handle_call(_Request, _From, State) ->
+handle_call(_Request, State) ->
     {ok, State}.
 
 %%--------------------------------------------------------------------
