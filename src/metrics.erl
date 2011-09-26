@@ -39,7 +39,7 @@ erlang_metrics() ->
 
 incr_test() ->
     application:start(metrics),
-    Test = now(),
+    ok = gen_event:add_handler(metrics_event, metrics_server, []),
     metrics_counter:incr(plop, 42),
     ?assertEqual(42, metrics_counter:get(plop)),
     metrics_counter:incr(plop, 1),

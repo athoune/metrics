@@ -17,7 +17,9 @@
 %% ===================================================================
 
 start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    R = supervisor:start_link({local, ?MODULE}, ?MODULE, []),
+    {ok, Pid} = gen_event:start_link({local, metrics_event}),
+    R.
 
 %% ===================================================================
 %% Supervisor callbacks
@@ -25,9 +27,9 @@ start_link() ->
 
 init([]) ->
     {ok, { {one_for_one, 5, 10}, [
-        {metrics_server, {metrics_server, start_link, []},
-        permanent, 2000, worker, [metrics_server]
-        }
+%       {metrics_server, {metrics_server, start_link, []},
+%       permanent, 2000, worker, [metrics_server]
+%       }
         %,?CHILD(metrics_csv, worker)
     ]} }.
 

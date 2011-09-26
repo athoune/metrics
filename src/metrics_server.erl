@@ -1,10 +1,10 @@
 -module(metrics_server).
 -author('mathieu@garambrogne.net').
 
--behaviour(gen_server).
+-behaviour(gen_event).
 
 %% gen_server callbacks
--export([start_link/0, init/1, handle_call/3, handle_cast/2, 
+-export([start_link/0, init/1, handle_call/3, handle_event/2,
 handle_info/2, terminate/2, code_change/3]).
 
 -export([dump/1]).
@@ -45,100 +45,100 @@ init([]) ->
     }}.
 
 %%--------------------------------------------------------------------
-%% Function: %% handle_call(Request, From, State) -> {reply, Reply, State} |
-%%                                      {reply, Reply, State, Timeout} |
-%%                                      {noreply, State} |
-%%                                      {noreply, State, Timeout} |
+%% Function: %% handle_call(Request, From, State) -> {ok, Reply, State} |
+%%                                      {ok, Reply, State, Timeout} |
+%%                                      {nook, State} |
+%%                                      {nook, State, Timeout} |
 %%                                      {stop, Reason, Reply, State} |
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
 handle_call({get_counter, Key}, _From, State) ->
-    {reply, dict:fetch(Key, State#state.counter), State};
+    {ok, dict:fetch(Key, State#state.counter), State};
 
 handle_call({get_gauge, Key}, _From, State) ->
-    {reply, dict:fetch(Key, State#state.gauge), State};
+    {ok, dict:fetch(Key, State#state.gauge), State};
 
 handle_call({to_list_gauge}, _From, State) ->
-    {reply, compute_gauge(State#state.gauge), State};
+    {ok, compute_gauge(State#state.gauge), State};
 
 handle_call({min_max, Gauge}, _From, State) ->
-    {reply,
+    {ok,
         metrics_math:min_max(dict:fetch(Gauge, State#state.gauge)),
         State};
 
 handle_call({mean, Gauge}, _From, State) ->
-    {reply, metrics_math:mean(dict:fetch(Gauge, State#state.gauge)), State};
+    {ok, metrics_math:mean(dict:fetch(Gauge, State#state.gauge)), State};
 
 handle_call({percentile, Gauge, Percentile}, _From, State) ->
-    {reply,
+    {ok,
         metrics_math:percentile(dict:fetch(Gauge, State#state.gauge), Percentile),
         State};
 
 handle_call({list_counter}, _From, State) ->
-    {reply, dict:to_list(State#state.counter), State};
+    {ok, dict:to_list(State#state.counter), State};
 
 handle_call({snapshot}, _From, State) ->
     {Start, End, Counters, Gauges, NewState } = snapshot(State),
-    {reply, {Start, End, Counters, Gauges}, NewState};
+    {ok, {Start, End, Counters, Gauges}, NewState};
 
 handle_call(_Request, _From, State) ->
-    {reply, State}.
+    {ok, State}.
 
 %%--------------------------------------------------------------------
-%% Function: handle_cast(Msg, State) -> {noreply, State} |
+%% Function: handle_event(Msg, State) -> {noreply, State} |
 %%                                      {noreply, State, Timeout} |
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
-handle_cast({incr_counter, Key, Incr}, State) ->
-    {noreply, State#state{
+handle_event({incr_counter, Key, Incr}, State) ->
+    {ok, State#state{
         counter = dict:update_counter(Key, Incr, State#state.counter)
     }};
 
-handle_cast({reset_counter, Key}, State) ->
-    {noreply, State#state{
+handle_event({reset_counter, Key}, State) ->
+    {ok, State#state{
         counter = dict:store(Key, 0, State#state.counter)
     }};
 
-handle_cast({append_gauge, Key, Value}, State) when is_list(Value) ->
-    {noreply, State#state{
+handle_event({append_gauge, Key, Value}, State) when is_list(Value) ->
+    {ok, State#state{
         gauge = dict:append_list(Key, Value, State#state.gauge)
     }};
 
-handle_cast({append_gauge, Key, Value}, State) ->
-    {noreply, State#state{
+handle_event({append_gauge, Key, Value}, State) ->
+    {ok, State#state{
         gauge = dict:append(Key, Value, State#state.gauge)
     }};
 
-handle_cast({erase_gauge, Key}, State) ->
-    {noreply, State#state{
+handle_event({erase_gauge, Key}, State) ->
+    {ok, State#state{
         gauge = dict:store(Key, [], State#state.gauge)
     }};
 
-handle_cast({flush},#state{writer = Writer} = State) ->
+handle_event({flush},#state{writer = Writer} = State) ->
     metrics:erlang_metrics(),
     {Start, End, Counters, Gauges, NewState } = snapshot(State),
     Writer:write(Start, End, lists:sort(Counters), lists:sort(Gauges)),
-    {noreply, NewState};
+    {ok, NewState};
 
-handle_cast({set_writer, Writer, Period}, State) ->
+handle_event({set_writer, Writer, Period}, State) ->
     error_logger:info_msg("Metrics starts with ~s / ~wms~n", [Writer, Period]),
     {ok, Tref} = case Period of
         0 -> {ok, none};
         _ -> timer:apply_interval(Period, gen_server, cast, [?MODULE, {flush}])
     end,
-    {noreply, State#state{
+    {ok, State#state{
         timer   = Tref,
         writer  = Writer
     }};
 
-handle_cast({create_countdown, Key, Value, Fun}, State) ->
-    {noreply, State#state{
+handle_event({create_countdown, Key, Value, Fun}, State) ->
+    {ok, State#state{
         countdown = dict:store(Key, {Value, Fun, now()}, State#state.countdown)
     }};
 
-handle_cast({decr_countdown, Key, Step}, State) ->
+handle_event({decr_countdown, Key, Step}, State) ->
     {Value, Fun, StartTime} = dict:fetch(Key, State#state.countdown),
     case (Value rem 100) of
         0 ->
@@ -149,18 +149,18 @@ handle_cast({decr_countdown, Key, Step}, State) ->
     case Value of
         Step ->
             Fun(timer:now_diff(now(), StartTime)),
-            {noreply, State#state{
+            {ok, State#state{
                 countdown = dict:erase(Key, State#state.countdown)
             }};
         _ ->
-            {noreply, State#state{
+            {ok, State#state{
                 countdown = dict:store(Key, {Value - Step, Fun, StartTime}, State#state.countdown)
             }}
     end;
 
-handle_cast(Msg, State) ->
+handle_event(Msg, State) ->
     error_logger:warning_msg("Cast missing pattern : ~p~n", [Msg]),
-    {noreply, State}.
+    {ok, State}.
 
 %%--------------------------------------------------------------------
 %% Function: handle_info(Info, State) -> {noreply, State} |

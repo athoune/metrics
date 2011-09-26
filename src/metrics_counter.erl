@@ -17,23 +17,23 @@
 
 -spec incr(any()) -> 'ok'.
 incr(Counter) ->
-    gen_server:cast(metrics_server, {incr_counter, Counter, 1}).
+    gen_event:notify(metrics_event, {incr_counter, Counter, 1}).
 
 -spec incr(any(), integer()) -> 'ok'.
 incr(Counter, Inc) ->
-    gen_server:cast(metrics_server, {incr_counter, Counter, Inc}).
+    gen_event:notify(metrics_event, {incr_counter, Counter, Inc}).
 
 -spec get(any()) -> integer().
 get(Counter) ->
-    gen_server:call(metrics_server, {get_counter, Counter}).
+    gen_event:call(metrics_event, {get_counter, Counter}).
 
 -spec reset(any()) -> 'ok'.
 reset(Counter) ->
-    gen_server:cast(metrics_server, {reset_counter, Counter}).
+    gen_event:notify(metrics_event, {reset_counter, Counter}).
 
 -spec to_list() -> list(tuple(any(), integer())).
 to_list() ->
-    gen_server:call(metrics_server, {list_counter}).
+    gen_event:call(metrics_event, {list_counter}).
 
 -spec to_file() -> 'ok'.
 to_file() ->

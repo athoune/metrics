@@ -20,23 +20,23 @@
 
 -spec append(any(), number()) -> 'ok'.
 append(Key, Value) ->
-    gen_server:cast(metrics_server, {append_gauge, Key, Value}).
+    gen_event:notify(metrics_event, {append_gauge, Key, Value}).
 
 -spec append_timer(any(), calendar:t_now()) -> 'ok'.
 append_timer(Key, Starting) ->
-    gen_server:cast(metrics_server, {append_gauge, Key, timer:now_diff(now(), Starting)}).
+    gen_event:notify(metrics_event, {append_gauge, Key, timer:now_diff(now(), Starting)}).
 
 -spec erase(any()) -> 'ok'.
 erase(Key) ->
-    gen_server:cast(metrics_server, {erase_gauge, Key}).
+    gen_event:notify(metrics_event, {erase_gauge, Key}).
 
 -spec get(any()) -> list(number()).
 get(Key) ->
-    gen_server:call(metrics_server, {get_gauge, Key}).
+    gen_event:call(metrics_event, {get_gauge, Key}).
 
 -spec to_list() -> list(tuple(any(), list(number()))).
 to_list() ->
-    gen_server:call(metrics_server, {to_list_gauge}).
+    gen_event:call(metrics_event, {to_list_gauge}).
 
 to_file() ->
     {Mega, Second, _} = now(),
@@ -55,23 +55,22 @@ dump_lines(Fd, [{Key, Median, Min, Max}|T]) ->
 
 -spec min_max(any()) -> tuple(number(), number()).
 min_max(Gauge) ->
-    gen_server:call(metrics_server, {min_max, Gauge}).
+    gen_event:call(metrics_event, {min_max, Gauge}).
 
 -spec mean(any()) -> float().
 mean(Gauge) ->
-    gen_server:call(metrics_server, {mean, Gauge}).
+    gen_event:call(metrics_event, {mean, Gauge}).
 
 %% http://en.wikipedia.org/wiki/Percentile
 %% 0 <= Percentile <= 100
 %% Percentile = 50 => median
 -spec percentile(any(), number()) -> number().
 percentile(Gauge, Percentile) ->
-    gen_server:call(metrics_server, {percentile, Gauge, Percentile}).
+    gen_event:call(metrics_event, {percentile, Gauge, Percentile}).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
     gauge_test() ->
-        metrics_server:start_link(),
         metrics_gauge:append(truc, 42),
         metrics_gauge:append(truc, 40),
         metrics_gauge:append(truc, 44),
