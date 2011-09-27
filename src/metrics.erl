@@ -5,7 +5,6 @@
     snapshot/0,
     add_writer/1,
     add_writer/2,
-    add_writer/3,
     erlang_metrics/0
 ]).
 
@@ -14,16 +13,14 @@
 snapshot() ->
     gen_server:call(metrics_server, {snapshot}).
 
-% metrics_csv
 add_writer(Writer) ->
-    add_writer(Writer, 10000).
-add_writer(Writer, Period) ->
-    add_writer(Writer, Period, []).
-add_writer(Writer, Period, Options) ->
-    {ok, _} = supervisor:start_child(metrics_sup, {Writer,
-        {Writer, start_link, Options}, permanent, 5000, worker, [Writer]}),
-    gen_server:cast(metrics_server, {set_writer, Writer, Period}).
+    add_writer(Writer, []).
 
+add_writer(Writer, Args) ->
+    % [TODO] attach to the supervisor
+    gen_event:add_handler(metrics_event, Writer, Args).
+
+% Fetch infos from the erlang runtime
 erlang_metrics() ->
     metrics_gauge:append("erlang:processes", erlang:system_info(process_count)),
     metrics_gauge:append("erlang:schedulers", erlang:system_info(schedulers)),
@@ -39,7 +36,7 @@ erlang_metrics() ->
 
 incr_test() ->
     application:start(metrics),
-    ok = gen_event:add_handler(metrics_event, metrics_server, []),
+    add_writer(metrics_server),
     metrics_counter:incr(plop, 42),
     ?assertEqual(42, metrics_counter:get(plop)),
     metrics_counter:incr(plop, 1),

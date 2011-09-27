@@ -4,7 +4,7 @@
 -behaviour(gen_event).
 
 %% gen_server callbacks
--export([start_link/0, init/1, handle_call/2, handle_event/2,
+-export([init/1, handle_call/2, handle_event/2,
 handle_info/2, terminate/2, code_change/3]).
 
 -export([dump/1]).
@@ -17,42 +17,18 @@ handle_info/2, terminate/2, code_change/3]).
     timer,
     writer}).
 
-%%====================================================================
-%% api callbacks
-%%====================================================================
-start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
-
-%%====================================================================
-%% gen_server callbacks
-%%====================================================================
-
-%%--------------------------------------------------------------------
-%% Function: init(Args) -> {ok, State} |
-%%                         {ok, State, Timeout} |
-%%                         ignore               |
-%%                         {stop, Reason}
-%% Description: Initiates the server
-%%--------------------------------------------------------------------
 init([]) ->
+    init([0, none]);
+init([_Refresh, Writer]) ->
     {ok, #state{
         start_time = now(),
         counter    = dict:new(),
         gauge      = dict:new(),
         countdown  = dict:new(),
         timer      = none,
-        writer     = none
+        writer     = Writer
     }}.
 
-%%--------------------------------------------------------------------
-%% Function: %% handle_call(Request, From, State) -> {ok, Reply, State} |
-%%                                      {ok, Reply, State, Timeout} |
-%%                                      {nook, State} |
-%%                                      {nook, State, Timeout} |
-%%                                      {stop, Reason, Reply, State} |
-%%                                      {stop, Reason, State}
-%% Description: Handling call messages
-%%--------------------------------------------------------------------
 handle_call({get_counter, Key}, State) ->
     {ok, dict:fetch(Key, State#state.counter), State};
 
@@ -85,12 +61,7 @@ handle_call({snapshot}, State) ->
 handle_call(_Request, State) ->
     {ok, State}.
 
-%%--------------------------------------------------------------------
-%% Function: handle_event(Msg, State) -> {noreply, State} |
-%%                                      {noreply, State, Timeout} |
-%%                                      {stop, Reason, State}
-%% Description: Handling cast messages
-%%--------------------------------------------------------------------
+
 handle_event({incr_counter, Key, Incr}, State) ->
     {ok, State#state{
         counter = dict:update_counter(Key, Incr, State#state.counter)
@@ -162,29 +133,12 @@ handle_event(Msg, State) ->
     error_logger:warning_msg("Cast missing pattern : ~p~n", [Msg]),
     {ok, State}.
 
-%%--------------------------------------------------------------------
-%% Function: handle_info(Info, State) -> {noreply, State} |
-%%                                       {noreply, State, Timeout} |
-%%                                       {stop, Reason, State}
-%% Description: Handling all non call/cast messages
-%%--------------------------------------------------------------------
 handle_info(_Info, State) ->
     {noreply, State}.
 
-%%--------------------------------------------------------------------
-%% Function: terminate(Reason, State) -> void()
-%% Description: This function is called by a gen_server when it is about to
-%% terminate. It should be the opposite of Module:init/1 and do any necessary
-%% cleaning up. When it returns, the gen_server terminates with Reason.
-%% The return value is ignored.
-%%--------------------------------------------------------------------
 terminate(_Reason, State) ->
     {ok, State}.
 
-%%--------------------------------------------------------------------
-%% Func: code_change(OldVsn, State, Extra) -> {ok, NewState}
-%% Description: Convert process state when code is changed
-%%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
