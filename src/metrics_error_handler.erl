@@ -1,3 +1,7 @@
+%
+% Count errors from the erlang's logger
+%
+
 -module(metrics_error_handler).
 -author('mathieu@garambrogne.net').
 
