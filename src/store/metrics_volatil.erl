@@ -1,4 +1,4 @@
--module(metrics_server).
+-module(metrics_volatil).
 -author('mathieu@garambrogne.net').
 
 -behaviour(gen_event).
@@ -7,7 +7,7 @@
 -export([init/1, handle_call/2, handle_event/2,
 handle_info/2, terminate/2, code_change/3]).
 
--export([dump/1]).
+-export([dump/1, snapshot/0]).
 
 -record(state, {
     start_time,
@@ -87,12 +87,14 @@ handle_event({erase_gauge, Key}, State) ->
         gauge = dict:store(Key, [], State#state.gauge)
     }};
 
+% FIXME
 handle_event({flush},#state{writer = Writer} = State) ->
     metrics:erlang_metrics(),
     {Start, End, Counters, Gauges, NewState } = snapshot(State),
     Writer:write(Start, End, lists:sort(Counters), lists:sort(Gauges)),
     {ok, NewState};
 
+% FIXME
 handle_event({set_writer, Writer, Period}, State) ->
     error_logger:info_msg("Metrics starts with ~s / ~wms~n", [Writer, Period]),
     {ok, Tref} = case Period of
@@ -147,8 +149,11 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 
 dump(Driver) ->
-    {Start, End, Counters, Gauges} = gen_server:call(?MODULE, {snapshot}),
+    {Start, End, Counters, Gauges} = gen_event:call(metrics_event, ?MODULE, {snapshot}),
     Driver:write(Start, End, Counters, Gauges).
+
+snapshot() ->
+    gen_event:call(metrics_event, ?MODULE, {snapshot}).
 
 %%--------------------------------------------------------------------
 %% Private API

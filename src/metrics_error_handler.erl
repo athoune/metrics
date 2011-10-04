@@ -5,7 +5,7 @@
 -module(metrics_error_handler).
 -author('mathieu@garambrogne.net').
 
--behaviour (gen_event).
+-behaviour(gen_event).
 
 -export([
     init/1,

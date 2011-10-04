@@ -12,7 +12,7 @@
 
 start(_StartType, _StartArgs) ->
     {ok, Pid} = metrics_sup:start_link(),
-    metrics_error_handler:register_with_logger(),
+    %metrics_error_handler:register_with_logger(),
     {ok, Pid}.
 
 stop(_State) ->

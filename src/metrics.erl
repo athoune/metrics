@@ -8,17 +8,18 @@
     erlang_metrics/0
 ]).
 
+% @deprecated
 -spec snapshot() -> tuple(tuple(number(), number(), number()),
     tuple(number(), number(), number()), list(), list()).
 snapshot() ->
-    gen_server:call(metrics_server, {snapshot}).
+    metrics_volatil:snapshot().
 
 add_writer(Writer) ->
     add_writer(Writer, []).
 
 add_writer(Writer, Args) ->
     % [TODO] attach to the supervisor
-    gen_event:add_handler(metrics_event, Writer, Args).
+    ok = gen_event:add_handler(metrics_event, Writer, Args).
 
 % Fetch infos from the erlang runtime
 erlang_metrics() ->
@@ -34,15 +35,22 @@ erlang_metrics() ->
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
-incr_test() ->
-    application:start(metrics),
-    add_writer(metrics_server),
-    metrics_counter:incr(plop, 42),
-    ?assertEqual(42, metrics_counter:get(plop)),
-    metrics_counter:incr(plop, 1),
-    ?assertEqual(43, metrics_counter:get(plop)),
-    metrics_counter:reset(plop),
-    metrics_counter:incr(plop, 3),
-    ?assertEqual(3, metrics_counter:get(plop)).
+setup_test_() ->
+    {spawn,
+        [{setup,
+            fun metrics_test:setup/0,
+            fun metrics_test:cleanup/1,
+
+            fun() ->
+                add_writer(metrics_volatil),
+                metrics_counter:incr(plop, 42),
+                ?assertEqual(42, metrics_counter:get(plop)),
+                metrics_counter:incr(plop, 1),
+                ?assertEqual(43, metrics_counter:get(plop)),
+                metrics_counter:reset(plop),
+                metrics_counter:incr(plop, 3),
+                ?assertEqual(3, metrics_counter:get(plop))
+            end
+        }]}.
 
 -endif.

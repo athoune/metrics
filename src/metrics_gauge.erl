@@ -70,19 +70,29 @@ percentile(Gauge, Percentile) ->
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
-    gauge_test() ->
-        metrics_gauge:append(truc, 42),
-        metrics_gauge:append(truc, 40),
-        metrics_gauge:append(truc, 44),
-        ?assertEqual([42, 40, 44], metrics_gauge:get(truc)),
-        ?assertEqual({40, 44}, min_max(truc)),
-        ?assertEqual(42.0, mean(truc)),
-        metrics_gauge:erase(truc),
-        append(truc, 4807),
-        ?assertEqual([4807], metrics_gauge:get(truc)),
-        metrics_gauge:erase(truc),
-        metrics_gauge:append(truc, [1,2,3,4,5,6,7,8,9,10]),
-        ?assertEqual(6, percentile(truc, 50)),
-        ?assertEqual(10, percentile(truc, 100)),
-        ?assertEqual(1, percentile(truc, 0)).
+
+gauge_test() ->
+    {spawn,
+        {setup,
+            fun() -> application:start(metrics) end,
+
+            fun(_) -> application:stop(metrics) end,
+
+            fun() ->
+                    metrics_gauge:append(truc, 42),
+                    metrics_gauge:append(truc, 40),
+                    metrics_gauge:append(truc, 44),
+                    ?assertEqual([42, 40, 44], metrics_gauge:get(truc)),
+                    ?assertEqual({40, 44}, min_max(truc)),
+                    ?assertEqual(42.0, mean(truc)),
+                    metrics_gauge:erase(truc),
+                    append(truc, 4807),
+                    ?assertEqual([4807], metrics_gauge:get(truc)),
+                    metrics_gauge:erase(truc),
+                    metrics_gauge:append(truc, [1,2,3,4,5,6,7,8,9,10]),
+                    ?assertEqual(6, percentile(truc, 50)),
+                    ?assertEqual(10, percentile(truc, 100)),
+                    ?assertEqual(1, percentile(truc, 0))
+            end
+        }}.
 -endif.

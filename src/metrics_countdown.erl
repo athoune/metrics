@@ -18,15 +18,21 @@ decr(Key, Value) ->
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
-    decr_test() ->
-        application:start(metrics),
+decr_test() ->
+    {spawn,
+        {setup,
+            fun() -> application:start(metrics) end,
 
-        ok = metrics_countdown:create(plop, 2, fun(_Time) ->
-            ok = metrics_counter:incr(countdown)
-        end),
-        ok = metrics_countdown:decr(plop),
-        ok = metrics_countdown:decr(plop),
-        timer:sleep(1), %this sequence is single threaded, give time to callback to execute
-        ?assertEqual(1, metrics_counter:get(countdown)).
+            fun(_) -> application:stop(metrics) end,
 
+            fun() ->
+                    ok = metrics_countdown:create(plop, 2, fun(_Time) ->
+                        ok = metrics_counter:incr(countdown)
+                    end),
+                    ok = metrics_countdown:decr(plop),
+                    ok = metrics_countdown:decr(plop),
+                    timer:sleep(1), %this sequence is single threaded, give time to callback to execute
+                    ?assertEqual(1, metrics_counter:get(countdown))
+            end
+     }}.
 -endif.
