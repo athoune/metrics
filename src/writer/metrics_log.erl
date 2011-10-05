@@ -25,7 +25,7 @@ snapshot(Path) ->
 
 % Private
 
-timestamp({Mega, Second, Micro}) ->
+timestamp({Mega, Second, _Micro}) ->
     Mega * 1000000 + Second.
 
 -ifdef(TEST).

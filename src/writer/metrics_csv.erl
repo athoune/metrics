@@ -1,6 +1,11 @@
 -module(metrics_csv).
 -author('mathieu@garambrogne.net').
 
+-export([
+    snapshot/0,
+    snapshot/1
+    ]).
+
 snapshot() ->
     snapshot("/tmp/metrics").
 
@@ -24,7 +29,7 @@ snapshot(Path) ->
 
 % Private
 
-timestamp({Mega, Second, Micro}) ->
+timestamp({Mega, Second, _Micro}) ->
     Mega * 1000000 + Second.
 
 -ifdef(TEST).
