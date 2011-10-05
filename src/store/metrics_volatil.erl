@@ -7,7 +7,7 @@
 -export([init/1, handle_call/2, handle_event/2,
 handle_info/2, terminate/2, code_change/3]).
 
--export([dump/1, snapshot/0]).
+-export([dump/1, snapshot/0, raw_snapshot/0]).
 
 -record(state, {
     start_time,
@@ -58,9 +58,17 @@ handle_call({snapshot}, State) ->
     {Start, End, Counters, Gauges, NewState } = snapshot(State),
     {ok, {Start, End, Counters, Gauges}, NewState};
 
+handle_call({raw_snapshot}, State) ->
+    S = now(),
+    {ok, {State#state.start_time, S, dict:to_list(State#state.counter), dict:to_list(State#state.gauge) },
+        State#state{
+            start_time = S,
+            counter = dict:new(),
+            gauge   = dict:new()
+    }};
+
 handle_call(_Request, State) ->
     {ok, State}.
-
 
 handle_event({incr_counter, Key, Incr}, State) ->
     {ok, State#state{
@@ -154,6 +162,9 @@ dump(Driver) ->
 
 snapshot() ->
     gen_event:call(metrics_event, ?MODULE, {snapshot}).
+
+raw_snapshot() ->
+    gen_event:call(metrics_event, ?MODULE, {raw_snapshot}).
 
 %%--------------------------------------------------------------------
 %% Private API
