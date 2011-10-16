@@ -1,3 +1,7 @@
+%%
+%% Gauge counters. Handles data with variations, like a speed.
+%%
+
 -module(metrics_gauge).
 -author('mathieu@garambrogne.net').
 

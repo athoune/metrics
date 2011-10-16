@@ -1,3 +1,7 @@
+%%
+%% Trigger an action after a specific number of actions.
+%%
+
 -module(metrics_countdown).
 
 -author('mathieu@garambrogne.net').

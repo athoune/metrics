@@ -1,3 +1,7 @@
+%%
+%% Basic counter. Increment a key.
+%%
+
 -module(metrics_counter).
 -author('mathieu@garambrogne.net').
 
@@ -35,19 +39,23 @@ reset(Counter) ->
 to_list() ->
     gen_event:call(metrics_event, metrics_volatil, {list_counter}).
 
+% FIXME
 -spec to_file() -> 'ok'.
 to_file() ->
     {Mega, Second, _} = now(),
     to_file(io_lib:format("/tmp/counter.~w~w.csv", [Mega, Second])).
 
+% FIXME
 -spec to_file(string()) -> 'ok'.
 to_file(FileName) ->
     {ok, Fd} = file:open(FileName, [write]),
     ok = dump_line(Fd, to_list()),
     file:close(Fd).
 
+% FIXME
 dump_line(_Fd, []) ->
     ok;
+% FIXME
 dump_line(Fd, [{Key, Value}|T]) ->
     file:write(Fd, io_lib:format("~s;~w~n", [Key, Value])),
     dump_line(Fd, T).
